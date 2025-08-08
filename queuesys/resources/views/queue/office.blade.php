@@ -84,9 +84,6 @@
                     @else
                         <p class="text-gray-500">No visitors in the queue.</p>
                     @endif
-                </div>
-
-            </div>
         </div>
     </div>
     <script>
