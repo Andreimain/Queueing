@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->nullable(); // Optional: associate with user
             $table->string('name');
             $table->integer('number')->unique();
-            $table->enum('status', ['waiting', 'serving', 'done'])->default('waiting');
+            $table->enum('status', ['waiting', 'serving', 'done', 'skipped'])->default('waiting');
             $table->timestamps();
         });
     }

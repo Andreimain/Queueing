@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('office'); // e.g., business_office, library
             $table->integer('queue_number');
-            $table->enum('status', ['waiting', 'serving', 'done'])->default('waiting');
+            $table->enum('status', ['waiting', 'serving', 'done', 'skipped'])->default('waiting');
             $table->timestamps();
         });
     }
