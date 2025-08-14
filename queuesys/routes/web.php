@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
 // Per Office routes
 Route::prefix('office')->middleware('auth')->group(function () {
     Route::get('{office}/queue', [OfficeQueueController::class, 'index'])->name('office.queue');
+    Route::get('{office}/skipped', [OfficeQueueController::class, 'viewSkipped'])->name('office.skipped');
     Route::post('{office}/next', [OfficeQueueController::class, 'next'])->name('office.queue.next');
     Route::post('{office}/done', [OfficeQueueController::class, 'markDone'])->name('office.queue.done');
     Route::post('{office}/skip', [OfficeQueueController::class, 'markSkip'])->name('office.queue.skip');

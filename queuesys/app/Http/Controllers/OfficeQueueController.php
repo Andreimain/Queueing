@@ -86,4 +86,18 @@ class OfficeQueueController extends Controller
 
         return back()->with('error', 'No visitor is currently being served.');
     }
+
+    public function viewSkipped($office)
+    {
+        $office = ucwords(strtolower($office));
+        $today = now()->toDateString();
+
+        $skipped = Visitor::where('office', $office)
+            ->whereDate('created_at', $today)
+            ->where('status', 'skipped')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return view('queue.skiplist', compact('skipped', 'office'));
+    }
 }
