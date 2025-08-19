@@ -1,7 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            List of Skipped Visitors for All Offices (Today: {{ now()->timezone('Asia/Manila')->format('F d, Y h:i A') }})
+            List of Skipped Visitors for All Offices
+            (Today: <span id="current-time"></span>)
         </h2>
     </x-slot>
 
@@ -62,8 +63,22 @@
         </div>
     </div>
 
-    <!-- Script for "Select All" -->
+    <!-- Scripts -->
     <script>
+        // Live Manila Time for header
+        function updateTime() {
+            const options = {
+                timeZone: "Asia/Manila",
+                year: "numeric", month: "long", day: "numeric",
+                hour: "2-digit", minute: "2-digit", second: "2-digit"
+            };
+            document.getElementById("current-time").innerText =
+                new Date().toLocaleString("en-US", options);
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Select All checkbox logic
         document.getElementById('select-all').addEventListener('change', function(e) {
             const checkboxes = document.querySelectorAll('.row-checkbox');
             checkboxes.forEach(cb => cb.checked = e.target.checked);
