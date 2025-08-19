@@ -28,37 +28,20 @@
                         <div x-show="show" x-cloak x-transition
                             class="absolute mt-2 w-48 bg-white shadow-lg rounded-md z-50 border border-gray-200">
                             <a href="{{ route('office.queue', 'business office') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Business Office</a>
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Business Office</a>
                             <a href="{{ route('office.queue', 'library') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Library</a>
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Library</a>
                             <a href="{{ route('office.queue', 'student affairs') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Student Affairs</a>
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Student Affairs</a>
                             <a href="{{ route('office.queue', 'registrar') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Registrar</a>
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Registrar</a>
                         </div>
                     </div>
 
-                    <!-- View Skipped Dropdown -->
-                    <div x-data="{ show: false }" class="relative group" @mouseenter="show = true" @mouseleave="show = false">
-                        <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none transition">
-                            View Skipped
-                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-
-                        <div x-show="show" x-cloak x-transition
-                            class="absolute mt-2 w-48 bg-white shadow-lg rounded-md z-50 border border-gray-200">
-                            <a href="{{ route('office.skipped', 'business office') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Business Office</a>
-                            <a href="{{ route('office.skipped', 'library') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Library</a>
-                            <a href="{{ route('office.skipped', 'student affairs') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Student Affairs</a>
-                            <a href="{{ route('office.skipped', 'registrar') }}"
-                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Registrar</a>
-                        </div>
-                    </div>
+                    <!-- View Skipped (Single Link) -->
+                    <x-nav-link :href="route('skipped.list')" :active="request()->routeIs('skipped.list')">
+                        {{ __('View Skipped') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -129,18 +112,9 @@
                 Registrar
             </x-responsive-nav-link>
 
-            <!-- View Skipped (Responsive) -->
-            <x-responsive-nav-link :href="route('office.skipped', 'business office')">
-                Skipped - Business Office
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.skipped', 'library')">
-                Skipped - Library
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.skipped', 'student affairs')">
-                Skipped - Student Affairs
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.skipped', 'registrar')">
-                Skipped - Registrar
+            <!-- View Skipped (Responsive, Single Link) -->
+            <x-responsive-nav-link :href="route('skipped.list')" :active="request()->routeIs('skipped.list')">
+                View Skipped
             </x-responsive-nav-link>
         </div>
 

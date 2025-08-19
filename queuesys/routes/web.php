@@ -19,17 +19,19 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Authenticated profile routes
+// Authenticated profile + skipped routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Global skipped visitors (all offices combined)
+    Route::get('/skipped', [OfficeQueueController::class, 'viewSkippedAll'])->name('skipped.list');
 });
 
 // Per Office routes
 Route::prefix('office')->middleware('auth')->group(function () {
     Route::get('{office}/queue', [OfficeQueueController::class, 'index'])->name('office.queue');
-    Route::get('{office}/skipped', [OfficeQueueController::class, 'viewSkipped'])->name('office.skipped');
     Route::post('{office}/next', [OfficeQueueController::class, 'next'])->name('office.queue.next');
     Route::post('{office}/done', [OfficeQueueController::class, 'markDone'])->name('office.queue.done');
     Route::post('{office}/skip', [OfficeQueueController::class, 'markSkip'])->name('office.queue.skip');

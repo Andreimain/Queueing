@@ -1,36 +1,72 @@
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            List of Skipped Visitors for All Offices (Today: {{ now()->timezone('Asia/Manila')->format('F d, Y h:i A') }})
+        </h2>
+    </x-slot>
 
-@section('content')
-<div class="container">
-    <h1 class="mb-4">Skipped Visitors - {{ $office }}</h1>
+    <div class="py-6">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
 
-    @if ($skipped->isEmpty())
-        <div class="alert alert-info">
-            No skipped visitors for today.
+                    <!-- Expanded + responsive table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full border border-gray-200 text-sm">
+                            <thead>
+                                <tr class="bg-gray-100 text-left">
+                                    <th class="px-4 py-2 border text-left">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="select-all" class="cursor-pointer">
+                                            <label for="select-all" class="ml-2 font-semibold text-gray-800">Select All</label>
+                                        </div>
+                                    </th>
+                                    <th class="px-4 py-2 border">Queue #</th>
+                                    <th class="px-4 py-2 border">First Name</th>
+                                    <th class="px-4 py-2 border">Last Name</th>
+                                    <th class="px-4 py-2 border">Office</th>
+                                    <th class="px-4 py-2 border">Skipped At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($skipped as $visitor)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-2 border text-center">
+                                            <input type="checkbox" name="selected[]" value="{{ $visitor->id }}" class="row-checkbox cursor-pointer">
+                                        </td>
+                                        <td class="px-4 py-2 border">{{ $visitor->queue_number }}</td>
+                                        <td class="px-4 py-2 border">{{ $visitor->first_name }}</td>
+                                        <td class="px-4 py-2 border">{{ $visitor->last_name }}</td>
+                                        <td class="px-4 py-2 border">{{ $visitor->office }}</td>
+                                        <td class="px-4 py-2 border">
+                                            {{ $visitor->updated_at->timezone('Asia/Manila')->format('h:i A') }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="px-4 py-2 text-center text-gray-500">
+                                            No skipped visitors today.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ $skipped->links() }}
+                    </div>
+
+                </div>
+            </div>
         </div>
-    @else
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Queue Number</th>
-                    <th>Name</th>
-                    <th>Time Skipped</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($skipped as $visitor)
-                    <tr>
-                        <td>{{ $visitor->queue_number }}</td>
-                        <td>{{ $visitor->name }}</td>
-                        <td>{{ $visitor->updated_at->format('h:i A') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
+    </div>
 
-    <a href="{{ route('office.queue', ['office' => strtolower($office)]) }}" class="btn btn-secondary mt-3">
-        Back to Queue
-    </a>
-</div>
-@endsection
+    <!-- Script for "Select All" -->
+    <script>
+        document.getElementById('select-all').addEventListener('change', function(e) {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+        });
+    </script>
+</x-app-layout>
