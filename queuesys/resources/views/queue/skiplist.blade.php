@@ -19,10 +19,8 @@
                                     <th class="px-4 py-2 border text-left">
                                         <div class="flex items-center">
                                             <input type="checkbox" id="select-all" class="cursor-pointer">
-                                            <label for="select-all" class="ml-2 font-semibold text-gray-800">Select All</label>
                                         </div>
                                     </th>
-                                    <th class="px-4 py-2 border">Queue #</th>
                                     <th class="px-4 py-2 border">First Name</th>
                                     <th class="px-4 py-2 border">Last Name</th>
                                     <th class="px-4 py-2 border">Office</th>
@@ -35,7 +33,6 @@
                                         <td class="px-4 py-2 border text-center">
                                             <input type="checkbox" name="selected[]" value="{{ $visitor->id }}" class="row-checkbox cursor-pointer">
                                         </td>
-                                        <td class="px-4 py-2 border">{{ $visitor->queue_number }}</td>
                                         <td class="px-4 py-2 border">{{ $visitor->first_name }}</td>
                                         <td class="px-4 py-2 border">{{ $visitor->last_name }}</td>
                                         <td class="px-4 py-2 border">{{ $visitor->office }}</td>
