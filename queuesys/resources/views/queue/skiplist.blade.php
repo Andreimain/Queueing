@@ -11,9 +11,20 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
 
+                    <!-- Top controls (search bar on the right) -->
+                    <div class="flex justify-end mb-4">
+                        <form method="GET" action="{{ route('skipped.list') }}" id="searchForm" class="w-1/3">
+                            <input type="text" name="q" id="searchInput"
+                                   value="{{ request('q') }}"
+                                   placeholder="Search visitor..."
+                                   autocomplete="off"
+                                   class="border px-3 py-2 rounded-md w-full">
+                        </form>
+                    </div>
+
                     <!-- Expanded + responsive table -->
                     <div class="overflow-x-auto">
-                        <table class="w-full border border-gray-200 text-sm">
+                        <table id="skippedTable" class="w-full border border-gray-200 text-sm">
                             <thead>
                                 <tr class="bg-gray-100 text-left">
                                     <th class="px-4 py-2 border text-left">
@@ -51,6 +62,7 @@
                         </table>
                     </div>
 
+                    <!-- Original pagination only -->
                     <div class="mt-4">
                         {{ $skipped->links() }}
                     </div>
@@ -62,7 +74,7 @@
 
     <!-- Scripts -->
     <script>
-        // Live Manila Time for header
+        // Live GMT-8 Time for header
         function updateTime() {
             const options = {
                 timeZone: "Asia/Manila",
@@ -79,6 +91,18 @@
         document.getElementById('select-all').addEventListener('change', function(e) {
             const checkboxes = document.querySelectorAll('.row-checkbox');
             checkboxes.forEach(cb => cb.checked = e.target.checked);
+        });
+
+        // Instant search (auto submit on typing)
+        let typingTimer;
+        const searchInput = document.getElementById("searchInput");
+        const searchForm = document.getElementById("searchForm");
+
+        searchInput.addEventListener("keyup", function () {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                searchForm.submit();
+            }, 500); // delay to avoid too many requests
         });
     </script>
 </x-app-layout>

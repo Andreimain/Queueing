@@ -44,7 +44,7 @@ class VisitorController extends Controller
 
         $nextNumber = $maxQueueNumber ? $maxQueueNumber + 1 : 1;
 
-        Visitor::create([
+        $visitor = Visitor::create([
             'first_name'   => $request->first_name,
             'last_name'    => $request->last_name,
             'contact'      => $request->contact,
@@ -54,7 +54,7 @@ class VisitorController extends Controller
             'status'       => 'waiting',
         ]);
 
-        return redirect()->back()->with('success', 'You have been added to the queue.');
+        // Show ticket page instead of redirecting back
+        return view('ticket', compact('visitor'));
     }
-
 }

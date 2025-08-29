@@ -4,11 +4,17 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisitorController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OfficeQueueController;
+use App\Http\Controllers\Controller;
 
 // Public landing page
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Monitor-Style Preview
+Route::get('/monitor/{office}', [Controller::class, 'monitor'])->name('monitor.show');
+Route::get('/monitor/{office}/data', [Controller::class, 'monitorData'])->name('monitor.data');
+
 
 // Public visitor queue registration (GET + POST)
 Route::get('/register-queue', [VisitorController::class, 'create'])->name('visitor.create');
@@ -24,8 +30,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Global skipped visitors (all offices combined)
     Route::get('/skipped', [OfficeQueueController::class, 'viewSkippedAll'])->name('skipped.list');
 });
 

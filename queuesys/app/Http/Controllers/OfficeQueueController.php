@@ -87,16 +87,31 @@ class OfficeQueueController extends Controller
         return back()->with('error', 'No visitor is currently being served.');
     }
 
-    public function viewSkippedAll()
+    public function viewSkippedAll(Request $request)
     {
         $today = now()->toDateString();
 
-        $skipped = Visitor::whereDate('created_at', $today)
-            ->where('status', 'skipped')
-            ->orderBy('updated_at', 'desc')
-            ->paginate(10);
+        $query = Visitor::whereDate('created_at', $today)
+            ->where('status', 'skipped');
+
+        // If searching
+        if ($request->has('q') && !empty($request->q)) {
+            $search = $request->q;
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('office', 'like', "%{$search}%");
+            });
+        }
+
+        $skipped = $query->orderBy('updated_at', 'desc')->paginate(10)->withQueryString();
+
+        if ($request->ajax()) {
+            return response()->view('queue.skiplist-body', compact('skipped'));
+        }
 
         return view('queue.skiplist', compact('skipped'));
     }
+
 
 }
