@@ -62,11 +62,24 @@
                         </table>
                     </div>
 
-                    <!-- Original pagination only -->
+                    <!-- Restore Selected button -->
+                    <div class="mt-4 text-center">
+                        <form method="POST" action="{{ route('skipped.restore') }}" id="restoreForm" class="inline-block">
+                            @csrf
+                            <input type="hidden" name="selected_ids" id="selectedIds">
+
+                            <button type="submit"
+                                class="py-2 px-4 rounded shadow font-semibold transition text-sm text-white hover:bg-green-700"
+                                style="color: white; background-color: green;">
+                                Restore Selected
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Pagination -->
                     <div class="mt-4">
                         {{ $skipped->links() }}
                     </div>
-
                 </div>
             </div>
         </div>
@@ -91,6 +104,20 @@
         document.getElementById('select-all').addEventListener('change', function(e) {
             const checkboxes = document.querySelectorAll('.row-checkbox');
             checkboxes.forEach(cb => cb.checked = e.target.checked);
+        });
+
+        // Collect selected IDs before submitting restore form
+        document.getElementById("restoreForm").addEventListener("submit", function (e) {
+            const selected = Array.from(document.querySelectorAll(".row-checkbox:checked"))
+                .map(cb => cb.value);
+
+            if (selected.length === 0) {
+                e.preventDefault();
+                alert("Please select at least one visitor to restore.");
+                return false;
+            }
+
+            document.getElementById("selectedIds").value = selected.join(",");
         });
 
         // Instant search (auto submit on typing)

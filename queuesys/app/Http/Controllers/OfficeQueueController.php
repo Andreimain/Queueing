@@ -104,7 +104,7 @@ class OfficeQueueController extends Controller
             });
         }
 
-        $skipped = $query->orderBy('updated_at', 'desc')->paginate(10)->withQueryString();
+        $skipped = $query->orderBy('updated_at', 'asc')->paginate(10)->withQueryString();
 
         if ($request->ajax()) {
             return response()->view('queue.skiplist-body', compact('skipped'));
@@ -113,5 +113,14 @@ class OfficeQueueController extends Controller
         return view('queue.skiplist', compact('skipped'));
     }
 
+    public function restoreSkipped(Request $request)
+    {
+        $ids = explode(',', $request->input('selected_ids'));
 
+        Visitor::whereIn('id', $ids)
+            ->where('status', 'skipped')
+            ->update(['status' => 'waiting']);
+
+        return back()->with('success', 'Selected visitors have been restored to the waiting queue.');
+    }
 }

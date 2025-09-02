@@ -15,7 +15,6 @@ Route::get('/', function () {
 Route::get('/monitor/{office}', [Controller::class, 'monitor'])->name('monitor.show');
 Route::get('/monitor/{office}/data', [Controller::class, 'monitorData'])->name('monitor.data');
 
-
 // Public visitor queue registration (GET + POST)
 Route::get('/register-queue', [VisitorController::class, 'create'])->name('visitor.create');
 Route::post('/register-queue', [VisitorController::class, 'store'])->name('visitor.store');
@@ -31,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/skipped', [OfficeQueueController::class, 'viewSkippedAll'])->name('skipped.list');
+    Route::post('/skipped/restore', [OfficeQueueController::class, 'restoreSkipped'])->name('skipped.restore');
 });
 
 // Per Office routes
