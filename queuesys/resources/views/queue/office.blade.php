@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ ucfirst($office) }} Queue
+            {{ $office->name }} Queue
         </h2>
     </x-slot>
 
@@ -23,7 +23,9 @@
 
                         @if($serving)
                             <div class="text-4xl font-bold text-blue-600">#{{ $serving->queue_number }}</div>
-                            <div class="text-gray-700 text-lg mt-1">{{ $serving->first_name }} {{ $serving->last_name }}</div>
+                            <div class="text-gray-700 text-lg mt-1">
+                                {{ $serving->first_name }} {{ $serving->last_name }}
+                            </div>
                         @elseif($waiting->count())
                             <p class="text-gray-500 mt-2">Press "Serve Next" to start serving visitors.</p>
                         @else
@@ -43,7 +45,7 @@
                     <div class="mb-6 text-center">
                         {{-- Serve Next --}}
                         @if($waiting->count() > 0 || !$serving)
-                            <form method="POST" action="{{ route('office.queue.next', $office) }}" class="inline-block">
+                            <form method="POST" action="{{ route('office.queue.next', $office->id) }}" class="inline-block">
                                 @csrf
                                 @php $isDisabled = !$waiting->count(); @endphp
                                 <button type="submit"
@@ -58,7 +60,7 @@
 
                         {{-- Skip --}}
                         @if($serving)
-                            <form method="POST" action="{{ route('office.queue.skip', $office) }}" class="inline-block ml-4">
+                            <form method="POST" action="{{ route('office.queue.skip', $office->id) }}" class="inline-block ml-4">
                                 @csrf
                                 <button type="submit"
                                     class="py-2 px-4 rounded shadow font-semibold transition text-sm bg-yellow-500 text-white hover:bg-yellow-600"
@@ -70,7 +72,7 @@
 
                         {{-- Done --}}
                         @if($serving)
-                            <form method="POST" action="{{ route('office.queue.done', $office) }}" class="inline-block ml-4">
+                            <form method="POST" action="{{ route('office.queue.done', $office->id) }}" class="inline-block ml-4">
                                 @csrf
                                 <button type="submit"
                                     class="py-2 px-4 rounded shadow font-semibold transition text-sm bg-green-600 text-white hover:bg-green-700"

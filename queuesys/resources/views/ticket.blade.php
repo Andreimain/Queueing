@@ -5,7 +5,7 @@
     <title>Your Queue Number</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // redirect back after 3 seconds
+        // redirect back after 5 seconds
         setTimeout(() => {
             window.location.href = "{{ route('visitor.create') }}";
         }, 5000);
@@ -15,7 +15,10 @@
 
     <div class="bg-white p-10 rounded-2xl shadow-lg text-center">
         <h1 class="text-3xl font-bold mb-4">You have joined the queue!</h1>
-        <p class="text-lg mb-2">Your queue number for <strong>{{ $visitor->office }}</strong> is:</p>
+        <p class="text-lg mb-2">
+            Your queue number for
+            <strong>{{ $visitor->office->name }}</strong> is:
+        </p>
         <div class="text-6xl font-bold text-green-600 mb-6">
             {{ $visitor->queue_number }}
         </div>

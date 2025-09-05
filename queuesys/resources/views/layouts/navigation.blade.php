@@ -27,13 +27,13 @@
 
                         <div x-show="show" x-cloak x-transition
                             class="absolute mt-2 w-48 bg-white shadow-lg rounded-md z-50 border border-gray-200">
-                            <a href="{{ route('office.queue', 'business office') }}"
+                            <a href="{{ route('office.queue', 1) }}"
                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Business Office</a>
-                            <a href="{{ route('office.queue', 'library') }}"
+                            <a href="{{ route('office.queue', 2) }}"
                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Library</a>
-                            <a href="{{ route('office.queue', 'student affairs') }}"
+                            <a href="{{ route('office.queue', 3) }}"
                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Student Affairs</a>
-                            <a href="{{ route('office.queue', 'registrar') }}"
+                            <a href="{{ route('office.queue', 4) }}"
                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Registrar</a>
                         </div>
                     </div>
@@ -99,16 +99,16 @@
             </x-responsive-nav-link>
 
             <!-- Queues (Responsive) -->
-            <x-responsive-nav-link :href="route('office.queue', 'business office')">
+            <x-responsive-nav-link :href="route('office.queue', 1)">
                 Business Office
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.queue', 'library')">
+            <x-responsive-nav-link :href="route('office.queue', 2)">
                 Library
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.queue', 'student affairs')">
+            <x-responsive-nav-link :href="route('office.queue', 3)">
                 Student Affairs
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.queue', 'registrar')">
+            <x-responsive-nav-link :href="route('office.queue', 4)">
                 Registrar
             </x-responsive-nav-link>
 

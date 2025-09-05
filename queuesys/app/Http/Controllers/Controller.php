@@ -4,43 +4,48 @@ namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller as BaseController;
 use App\Models\Visitor;
+use App\Models\Office;
 use Carbon\Carbon;
 
 class Controller extends BaseController
 {
-    public function monitor($office)
+    public function monitor($officeId)
     {
-        $office = ucwords(strtolower($office));
         $today  = Carbon::today();
+        $office = Office::findOrFail($officeId);
 
-        $currentQueue = Visitor::where('office', $office)
+        $currentQueue = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
             ->orderBy('updated_at', 'desc')
             ->first();
 
-        $upcomingQueues = Visitor::where('office', $office)
+        $upcomingQueues = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'waiting')
             ->orderBy('queue_number', 'asc')
             ->take(5)
             ->get();
 
-        return view('monitor.show', compact('office', 'currentQueue', 'upcomingQueues'));
+        return view('monitor.show', [
+            'office'         => $office,
+            'currentQueue'   => $currentQueue,
+            'upcomingQueues' => $upcomingQueues,
+        ]);
     }
 
     public function monitorData($office)
     {
-        $office = ucwords(strtolower($office));
-        $today  = Carbon::today();
+        $office = \App\Models\Office::findOrFail($office);
+        $today  = \Carbon\Carbon::today();
 
-        $currentQueue = Visitor::where('office', $office)
+        $currentQueue = \App\Models\Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
             ->orderBy('updated_at', 'desc')
             ->first();
 
-        $upcomingQueues = Visitor::where('office', $office)
+        $upcomingQueues = \App\Models\Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'waiting')
             ->orderBy('queue_number', 'asc')
@@ -49,17 +54,14 @@ class Controller extends BaseController
 
         return response()->json([
             'currentQueue' => $currentQueue ? [
-                'queue_number' => $currentQueue->queue_number,
-                'first_name'   => $currentQueue->first_name,
-                'last_name'    => $currentQueue->last_name,
+                'id_number' => $currentQueue->id_number,
             ] : null,
             'upcomingQueues' => $upcomingQueues->map(function ($v) {
                 return [
-                    'queue_number' => $v->queue_number,
-                    'first_name'   => $v->first_name,
-                    'last_name'    => $v->last_name,
+                    'id_number' => $v->id_number,
                 ];
             })->values(),
         ]);
     }
+
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\VisitorController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OfficeQueueController;
 use App\Http\Controllers\Controller;
+use App\Models\Office;
 
 // Public landing page
 Route::get('/', function () {
@@ -15,7 +16,7 @@ Route::get('/', function () {
 Route::get('/monitor/{office}', [Controller::class, 'monitor'])->name('monitor.show');
 Route::get('/monitor/{office}/data', [Controller::class, 'monitorData'])->name('monitor.data');
 
-// Public visitor queue registration (GET + POST)
+// Public visitor queue registration
 Route::get('/register-queue', [VisitorController::class, 'create'])->name('visitor.create');
 Route::post('/register-queue', [VisitorController::class, 'store'])->name('visitor.store');
 

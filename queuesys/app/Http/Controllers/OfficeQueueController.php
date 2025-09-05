@@ -4,20 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Visitor;
+use App\Models\Office;
 
 class OfficeQueueController extends Controller
 {
-    public function index($office)
+    public function index($officeId)
     {
-        $office = ucwords(strtolower($office));
+        $office = Office::findOrFail($officeId);
         $today = now()->toDateString();
 
-        $serving = Visitor::where('office', $office)
+        $serving = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
             ->first();
 
-        $waiting = Visitor::where('office', $office)
+        $waiting = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'waiting')
             ->orderBy('queue_number')
@@ -26,19 +27,19 @@ class OfficeQueueController extends Controller
         return view('queue.office', compact('office', 'serving', 'waiting'));
     }
 
-    public function next($office)
+    public function next($officeId)
     {
-        $office = ucwords(strtolower($office));
+        $office = Office::findOrFail($officeId);
         $today = now()->toDateString();
 
         // Mark current serving visitor as done
-        Visitor::where('office', $office)
+        Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
             ->update(['status' => 'done']);
 
         // Get next waiting visitor
-        $next = Visitor::where('office', $office)
+        $next = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'waiting')
             ->orderBy('queue_number')
@@ -51,12 +52,12 @@ class OfficeQueueController extends Controller
         return back()->with('success', 'Next visitor is now being served.');
     }
 
-    public function markDone($office)
+    public function markDone($officeId)
     {
-        $office = ucwords(strtolower($office));
+        $office = Office::findOrFail($officeId);
         $today = now()->toDateString();
 
-        $serving = Visitor::where('office', $office)
+        $serving = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
             ->first();
@@ -69,12 +70,12 @@ class OfficeQueueController extends Controller
         return back()->with('error', 'No visitor is currently being served.');
     }
 
-    public function markSkip($office)
+    public function markSkip($officeId)
     {
-        $office = ucwords(strtolower($office));
+        $office = Office::findOrFail($officeId);
         $today = now()->toDateString();
 
-        $serving = Visitor::where('office', $office)
+        $serving = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
             ->first();
@@ -91,7 +92,8 @@ class OfficeQueueController extends Controller
     {
         $today = now()->toDateString();
 
-        $query = Visitor::whereDate('created_at', $today)
+        $query = Visitor::with('office')
+            ->whereDate('created_at', $today)
             ->where('status', 'skipped');
 
         // If searching
@@ -100,7 +102,9 @@ class OfficeQueueController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhere('office', 'like', "%{$search}%");
+                    ->orWhereHas('office', function ($oq) use ($search) {
+                        $oq->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 

@@ -46,7 +46,7 @@
                                         </td>
                                         <td class="px-4 py-2 border">{{ $visitor->first_name }}</td>
                                         <td class="px-4 py-2 border">{{ $visitor->last_name }}</td>
-                                        <td class="px-4 py-2 border">{{ $visitor->office }}</td>
+                                        <td class="px-4 py-2 border">{{ $visitor->office->name }}</td>
                                         <td class="px-4 py-2 border">
                                             {{ $visitor->updated_at->timezone('Asia/Manila')->format('h:i A') }}
                                         </td>
