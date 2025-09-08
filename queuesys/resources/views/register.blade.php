@@ -50,7 +50,7 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">ID Number (Student/Visitor)</label>
+                <label class="block text-sm font-medium text-gray-700">Student ID No. / Visitor ID No.</label>
                 <input type="text" name="id_number" required
                        value="{{ old('id_number') }}"
                        class="mt-1 w-full p-2 border border-gray-300 rounded-md">
