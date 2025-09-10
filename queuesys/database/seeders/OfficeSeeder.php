@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Office;
 
 class OfficeSeeder extends Seeder
 {
@@ -12,6 +12,15 @@ class OfficeSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        $offices = [
+            'Business Office',
+            'Library',
+            'Student Affairs',
+            'Registrar',
+        ];
+
+        foreach ($offices as $name) {
+            Office::create(['name' => $name]);
+        }
     }
 }

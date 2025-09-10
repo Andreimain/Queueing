@@ -5,12 +5,34 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Visitor;
 use App\Models\Office;
+use Illuminate\Support\Facades\Auth;
 
 class OfficeQueueController extends Controller
 {
-    public function index($officeId)
+    /**
+     * Ensure the user can only access their assigned office (if staff).
+     *
+     * Note: this returns the Office model (no explicit return type to avoid
+     * editor/linter issues on some setups).
+     *
+     * @param  int|string  $officeId
+     * @return \App\Models\Office
+     */
+    private function authorizeOffice($officeId)
     {
         $office = Office::findOrFail($officeId);
+
+        $user = Auth::user();
+        if ($user && $user->isStaff() && $user->office_id !== $office->id) {
+            abort(403, 'Unauthorized access to this office queue.');
+        }
+
+        return $office;
+    }
+
+    public function index($officeId)
+    {
+        $office = $this->authorizeOffice($officeId);
         $today = now()->toDateString();
 
         $serving = Visitor::where('office_id', $office->id)
@@ -29,7 +51,7 @@ class OfficeQueueController extends Controller
 
     public function next($officeId)
     {
-        $office = Office::findOrFail($officeId);
+        $office = $this->authorizeOffice($officeId);
         $today = now()->toDateString();
 
         // Mark current serving visitor as done
@@ -54,7 +76,7 @@ class OfficeQueueController extends Controller
 
     public function markDone($officeId)
     {
-        $office = Office::findOrFail($officeId);
+        $office = $this->authorizeOffice($officeId);
         $today = now()->toDateString();
 
         $serving = Visitor::where('office_id', $office->id)
@@ -72,7 +94,7 @@ class OfficeQueueController extends Controller
 
     public function markSkip($officeId)
     {
-        $office = Office::findOrFail($officeId);
+        $office = $this->authorizeOffice($officeId);
         $today = now()->toDateString();
 
         $serving = Visitor::where('office_id', $office->id)
@@ -95,6 +117,12 @@ class OfficeQueueController extends Controller
         $query = Visitor::with('office')
             ->whereDate('created_at', $today)
             ->where('status', 'skipped');
+
+        // Staff restriction: only their office
+        $user = Auth::user();
+        if ($user && $user->isStaff()) {
+            $query->where('office_id', $user->office_id);
+        }
 
         // If searching
         if ($request->has('q') && !empty($request->q)) {
@@ -121,9 +149,16 @@ class OfficeQueueController extends Controller
     {
         $ids = explode(',', $request->input('selected_ids'));
 
-        Visitor::whereIn('id', $ids)
-            ->where('status', 'skipped')
-            ->update(['status' => 'waiting']);
+        $query = Visitor::whereIn('id', $ids)
+            ->where('status', 'skipped');
+
+        // Staff restriction: only their office
+        $user = Auth::user();
+        if ($user && $user->isStaff()) {
+            $query->where('office_id', $user->office_id);
+        }
+
+        $query->update(['status' => 'waiting']);
 
         return back()->with('success', 'Selected visitors have been restored to the waiting queue.');
     }

@@ -16,29 +16,35 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
-                    <!-- Queues Dropdown -->
-                    <div x-data="{ show: false }" class="relative group" @mouseenter="show = true" @mouseleave="show = false">
-                        <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none transition">
-                            Queues
-                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
+                    <!-- Queues -->
+                    @if(Auth::user()->isAdmin())
+                        <!-- Admin: Dropdown with all offices -->
+                        <div x-data="{ show: false }" class="relative group" @mouseenter="show = true" @mouseleave="show = false">
+                            <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none transition">
+                                Queues
+                                <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
 
-                        <div x-show="show" x-cloak x-transition
-                            class="absolute mt-2 w-48 bg-white shadow-lg rounded-md z-50 border border-gray-200">
-                            <a href="{{ route('office.queue', 1) }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Business Office</a>
-                            <a href="{{ route('office.queue', 2) }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Library</a>
-                            <a href="{{ route('office.queue', 3) }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Student Affairs</a>
-                            <a href="{{ route('office.queue', 4) }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Registrar</a>
+                            <div x-show="show" x-cloak x-transition
+                                class="absolute mt-2 w-48 bg-white shadow-lg rounded-md z-50 border border-gray-200">
+                                @foreach(\App\Models\Office::all() as $office)
+                                    <a href="{{ route('office.queue', $office->id) }}"
+                                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                       {{ $office->name }}
+                                    </a>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        <!-- Staff: Direct link to their assigned office -->
+                        <x-nav-link :href="route('office.queue', Auth::user()->office_id)">
+                            Queues
+                        </x-nav-link>
+                    @endif
 
-                    <!-- View Skipped (Single Link) -->
+                    <!-- View Skipped -->
                     <x-nav-link :href="route('skipped.list')" :active="request()->routeIs('skipped.list')">
                         {{ __('View Skipped') }}
                     </x-nav-link>
@@ -99,20 +105,19 @@
             </x-responsive-nav-link>
 
             <!-- Queues (Responsive) -->
-            <x-responsive-nav-link :href="route('office.queue', 1)">
-                Business Office
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.queue', 2)">
-                Library
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.queue', 3)">
-                Student Affairs
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('office.queue', 4)">
-                Registrar
-            </x-responsive-nav-link>
+            @if(Auth::user()->isAdmin())
+                @foreach(\App\Models\Office::all() as $office)
+                    <x-responsive-nav-link :href="route('office.queue', $office->id)">
+                        {{ $office->name }}
+                    </x-responsive-nav-link>
+                @endforeach
+            @else
+                <x-responsive-nav-link :href="route('office.queue', Auth::user()->office_id)">
+                    Queues
+                </x-responsive-nav-link>
+            @endif
 
-            <!-- View Skipped (Responsive, Single Link) -->
+            <!-- View Skipped -->
             <x-responsive-nav-link :href="route('skipped.list')" :active="request()->routeIs('skipped.list')">
                 View Skipped
             </x-responsive-nav-link>

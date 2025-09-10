@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            List of Skipped Visitors for All Offices
+            List of Skipped Visitors
             (Today: <span id="current-time"></span>)
         </h2>
     </x-slot>
