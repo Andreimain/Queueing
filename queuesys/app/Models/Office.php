@@ -25,4 +25,10 @@ class Office extends Model
     {
         return $this->hasMany(Visitor::class);
     }
+
+    public function office()
+    {
+        return $this->belongsTo(Office::class);
+    }
+
 }

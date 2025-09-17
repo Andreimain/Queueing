@@ -2,39 +2,60 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisitorController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OfficeQueueController;
-use App\Http\Controllers\Controller;
-use App\Models\Office;
+use App\Http\Controllers\StaffController;
+use Illuminate\Support\Facades\Route;
 
-// Public landing page
+// -----------------
+// Public Routes
+// -----------------
+
+// Landing page
 Route::get('/', function () {
     return view('welcome');
 });
 
 // Monitor-Style Preview
-Route::get('/monitor/{office}', [Controller::class, 'monitor'])->name('monitor.show');
-Route::get('/monitor/{office}/data', [Controller::class, 'monitorData'])->name('monitor.data');
+Route::get('/monitor/{office}', [OfficeQueueController::class, 'monitor'])->name('monitor.show');
+Route::get('/monitor/{office}/data', [OfficeQueueController::class, 'monitorData'])->name('monitor.data');
 
-// Public visitor queue registration
+// Visitor Queue Registration (Public)
 Route::get('/register-queue', [VisitorController::class, 'create'])->name('visitor.create');
 Route::post('/register-queue', [VisitorController::class, 'store'])->name('visitor.store');
 
-// Authenticated user dashboard
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// -----------------
+// Authenticated User Routes
+// -----------------
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
 
-// Authenticated profile + skipped routes
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/skipped', [OfficeQueueController::class, 'viewSkippedAll'])->name('skipped.list');
-    Route::post('/skipped/restore', [OfficeQueueController::class, 'restoreSkipped'])->name('skipped.restore');
+    // Profile
+    Route::prefix('profile')->group(function () {
+        Route::get('/', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    });
+
+    // Skipped Queues
+    Route::prefix('skipped')->group(function () {
+        Route::get('/', [OfficeQueueController::class, 'viewSkippedAll'])->name('skipped.list');
+        Route::post('/restore', [OfficeQueueController::class, 'restoreSkipped'])->name('skipped.restore');
+    });
+
+    // Staff Management
+    Route::prefix('staff')->group(function () {
+        Route::get('/', [StaffController::class, 'index'])->name('staff.index');
+        Route::post('/', [StaffController::class, 'store'])->name('staff.store');
+        Route::get('/{id}/edit', [StaffController::class, 'edit'])->name('staff.edit');
+        Route::put('/{id}', [StaffController::class, 'update'])->name('staff.update');
+        Route::delete('/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
+    });
 });
 
-// Per Office routes
+// -----------------
+// Office Routes (must be logged in)
+// -----------------
 Route::prefix('office')->middleware('auth')->group(function () {
     Route::get('{office}/queue', [OfficeQueueController::class, 'index'])->name('office.queue');
     Route::post('{office}/next', [OfficeQueueController::class, 'next'])->name('office.queue.next');
@@ -42,4 +63,4 @@ Route::prefix('office')->middleware('auth')->group(function () {
     Route::post('{office}/skip', [OfficeQueueController::class, 'markSkip'])->name('office.queue.skip');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
