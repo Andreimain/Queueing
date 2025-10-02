@@ -20,7 +20,9 @@ class OfficeSeeder extends Seeder
         ];
 
         foreach ($offices as $name) {
-            Office::create(['name' => $name]);
+            Office::create(
+                ['name' => $name],
+                ['priority_counter' => 0]);
         }
     }
 }

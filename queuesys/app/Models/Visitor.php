@@ -17,6 +17,12 @@ class Visitor extends Model
         'office_id',
         'queue_number',
         'status',
+        'type',
+        'priority',
+    ];
+
+    protected $casts = [
+        'priority' => 'boolean',
     ];
 
     /**

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ $office->name }} Queue
+            {{ $office->name }} Queue Management
         </h2>
     </x-slot>
 
@@ -9,10 +9,15 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
-                {{-- Success Message --}}
+                {{-- Flash Messages --}}
                 @if(session('success'))
                     <div class="mb-4 text-green-600 text-center font-medium">
                         {{ session('success') }}
+                    </div>
+                @endif
+                @if(session('error'))
+                    <div class="mb-4 text-red-600 text-center font-medium">
+                        {{ session('error') }}
                     </div>
                 @endif
 
@@ -22,9 +27,14 @@
                         <h3 class="text-lg font-semibold text-gray-700 mb-2">Now Serving</h3>
 
                         @if($serving)
-                            <div class="text-4xl font-bold text-blue-600">#{{ $serving->queue_number }}</div>
+                            <div class="text-4xl font-bold {{ $serving->priority ? 'text-red-600' : 'text-blue-600' }}">
+                                #{{ $serving->queue_number }}
+                            </div>
                             <div class="text-gray-700 text-lg mt-1">
                                 {{ $serving->first_name }} {{ $serving->last_name }}
+                            </div>
+                            <div class="mt-2 text-sm {{ $serving->priority ? 'text-red-500 font-semibold' : 'text-gray-500' }}">
+                                {{ $serving->priority ? 'Priority Ticket' : 'Regular Ticket' }}
                             </div>
                         @elseif($waiting->count())
                             <p class="text-gray-500 mt-2">Press "Serve Next" to start serving visitors.</p>
@@ -32,11 +42,13 @@
                             <p class="text-gray-500 mt-2">No one is currently being served.</p>
                         @endif
 
+                        {{-- Next in Line --}}
                         @if($waiting->count())
                             <div class="mt-4 text-sm text-gray-500">
                                 <strong>Next in line:</strong>
                                 #{{ $waiting->first()->queue_number }} —
                                 {{ $waiting->first()->first_name }} {{ $waiting->first()->last_name }}
+                                ({{ $waiting->first()->priority ? 'Priority' : 'Regular' }})
                             </div>
                         @endif
                     </div>
@@ -47,12 +59,10 @@
                         @if($waiting->count() > 0 || !$serving)
                             <form method="POST" action="{{ route('office.queue.next', $office->id) }}" class="inline-block">
                                 @csrf
-                                @php $isDisabled = !$waiting->count(); @endphp
                                 <button type="submit"
-                                    class="py-2 px-4 rounded shadow font-semibold transition text-sm
-                                        {{ $isDisabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700' }}"
-                                    {{ $isDisabled ? 'disabled' : '' }}
-                                    style="color: white; background-color: blue;">
+                                    class="py-2 px-4 rounded shadow font-semibold transition text-sm"
+                                    style="color: white; background-color: blue;"
+                                    {{ !$waiting->count() ? 'disabled' : '' }}>
                                     Serve Next
                                 </button>
                             </form>
@@ -63,7 +73,7 @@
                             <form method="POST" action="{{ route('office.queue.skip', $office->id) }}" class="inline-block ml-4">
                                 @csrf
                                 <button type="submit"
-                                    class="py-2 px-4 rounded shadow font-semibold transition text-sm bg-yellow-500 text-white hover:bg-yellow-600"
+                                    class="py-2 px-4 rounded shadow font-semibold transition text-sm"
                                     style="color: white; background-color: orange;">
                                     Skip
                                 </button>
@@ -75,7 +85,7 @@
                             <form method="POST" action="{{ route('office.queue.done', $office->id) }}" class="inline-block ml-4">
                                 @csrf
                                 <button type="submit"
-                                    class="py-2 px-4 rounded shadow font-semibold transition text-sm bg-green-600 text-white hover:bg-green-700"
+                                    class="py-2 px-4 rounded shadow font-semibold transition text-sm"
                                     style="color: white; background-color: green;">
                                     Done
                                 </button>
@@ -90,9 +100,16 @@
                         @if($waiting->count())
                             <ul class="space-y-2">
                                 @foreach($waiting as $visitor)
-                                    <li class="p-3 bg-white border rounded text-sm shadow-sm">
-                                        <span class="font-semibold text-blue-600">#{{ $visitor->queue_number }}</span> —
-                                        {{ $visitor->first_name }} {{ $visitor->last_name }}
+                                    <li class="p-3 bg-white border rounded text-sm shadow-sm flex justify-between items-center">
+                                        <div>
+                                            <span class="font-semibold {{ $visitor->priority ? 'text-red-600' : 'text-blue-600' }}">
+                                                #{{ $visitor->queue_number }}
+                                            </span> —
+                                            {{ $visitor->first_name }} {{ $visitor->last_name }}
+                                        </div>
+                                        <span class="text-xs px-2 py-1 rounded {{ $visitor->priority ? 'bg-red-100 text-red-600 font-semibold' : 'bg-blue-100 text-blue-600' }}">
+                                            {{ $visitor->priority ? 'Priority' : 'Regular' }}
+                                        </span>
                                     </li>
                                 @endforeach
                             </ul>

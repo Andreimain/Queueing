@@ -56,6 +56,27 @@
                        class="mt-1 w-full p-2 border border-gray-300 rounded-md">
             </div>
 
+            <!-- Type Selector -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Are you a Student or Visitor?</label>
+                <select name="type" id="type" required
+                        class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                    <option value="" disabled selected>-- Select Type --</option>
+                    <option value="student" {{ old('type') == 'student' ? 'selected' : '' }}>Student</option>
+                    <option value="visitor" {{ old('type') == 'visitor' ? 'selected' : '' }}>Visitor</option>
+                </select>
+            </div>
+
+            <!-- Priority Checkbox (hidden unless visitor) -->
+            <div id="priority-wrapper" style="display: none;">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" name="priority" value="1"
+                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500"
+                           {{ old('priority') ? 'checked' : '' }}>
+                    <span class="ml-2 text-sm text-gray-700">Priority Visitor (Senior, PWD, etc.)</span>
+                </label>
+            </div>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700">Select Office</label>
                 <select name="office_id" required
@@ -77,5 +98,24 @@
             </div>
         </form>
     </div>
+
+    <script>
+        const typeSelect = document.getElementById('type');
+        const priorityWrapper = document.getElementById('priority-wrapper');
+
+        function togglePriority() {
+            if (typeSelect.value === 'visitor') {
+                priorityWrapper.style.display = 'block';
+            } else {
+                priorityWrapper.style.display = 'none';
+                priorityWrapper.querySelector('input').checked = false;
+            }
+        }
+
+        typeSelect.addEventListener('change', togglePriority);
+
+        // Trigger on page load (for old values)
+        window.addEventListener('DOMContentLoaded', togglePriority);
+    </script>
 </body>
 </html>

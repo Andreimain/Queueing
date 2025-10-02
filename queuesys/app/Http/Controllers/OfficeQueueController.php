@@ -6,30 +6,28 @@ use Illuminate\Http\Request;
 use App\Models\Visitor;
 use App\Models\Office;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class OfficeQueueController extends Controller
 {
     /**
      * Ensure the user can only access their assigned office (if staff).
-     *
-     * Note: this returns the Office model (no explicit return type to avoid
-     * editor/linter issues on some setups).
-     *
-     * @param  int|string  $officeId
-     * @return \App\Models\Office
      */
     private function authorizeOffice($officeId)
     {
         $office = Office::findOrFail($officeId);
 
         $user = Auth::user();
-        if ($user && $user->isStaff() && $user->office_id !== $office->id) {
+        if ($user && method_exists($user, 'isStaff') && $user->isStaff() && $user->office_id !== $office->id) {
             abort(403, 'Unauthorized access to this office queue.');
         }
 
         return $office;
     }
 
+    /**
+     * Show queue for an office.
+     */
     public function index($officeId)
     {
         $office = $this->authorizeOffice($officeId);
@@ -49,67 +47,161 @@ class OfficeQueueController extends Controller
         return view('queue.office', compact('office', 'serving', 'waiting'));
     }
 
+    /**
+     * Serve the next visitor according to rule:
+     * - Serve 1 priority immediately if available.
+     * - Then require 2 regulars before another priority.
+     * - If no regulars available, fallback to priority (don’t stall).
+     */
     public function next($officeId)
     {
-        $office = $this->authorizeOffice($officeId);
-        $today = now()->toDateString();
+        $result = DB::transaction(function () use ($officeId) {
+            $office = $this->authorizeOffice($officeId);
+            $today = now()->toDateString();
 
-        // Mark current serving visitor as done
-        Visitor::where('office_id', $office->id)
-            ->whereDate('created_at', $today)
-            ->where('status', 'serving')
-            ->update(['status' => 'done']);
+            // Finish the current serving (if any)
+            $current = Visitor::where('office_id', $office->id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'serving')
+                ->first();
 
-        // Get next waiting visitor
-        $next = Visitor::where('office_id', $office->id)
-            ->whereDate('created_at', $today)
-            ->where('status', 'waiting')
-            ->orderBy('queue_number')
-            ->first();
+            if ($current) {
+                $wasPriority = (bool) $current->priority;
+                $current->update(['status' => 'done']);
 
-        if ($next) {
-            $next->update(['status' => 'serving']);
-        }
+                if ($wasPriority) {
+                    $office->priority_counter = 0; // reset after serving priority
+                } else {
+                    $office->priority_counter = (int) ($office->priority_counter ?? 0) + 1;
+                }
+                $office->save();
+            }
 
-        return back()->with('success', 'Next visitor is now being served.');
+            // Find waiting visitors
+            $priority = Visitor::where('office_id', $office->id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'waiting')
+                ->where('priority', true)
+                ->orderBy('queue_number')
+                ->first();
+
+            $regular = Visitor::where('office_id', $office->id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'waiting')
+                ->where(function ($q) {
+                    $q->where('priority', false)->orWhereNull('priority');
+                })
+                ->orderBy('queue_number')
+                ->first();
+
+            if (! $priority && ! $regular) {
+                return ['status' => 'empty', 'message' => 'No visitors left to serve.'];
+            }
+
+            $next = null;
+            $counter = (int) ($office->priority_counter ?? 0);
+
+            if ($priority) {
+                if ($counter >= 2) {
+                    // After 2 regulars, priority is allowed again
+                    $next = $priority;
+                } else {
+                    // Need more regulars first, unless no regulars exist
+                    $next = $regular ?? $priority;
+                }
+            } else {
+                // No priority waiting, serve regular
+                $next = $regular;
+            }
+
+            if ($next) {
+                $next->update(['status' => 'serving']);
+                return ['status' => 'success', 'message' => "Visitor #{$next->queue_number} is now being served."];
+            }
+
+            return ['status' => 'empty', 'message' => 'No visitors left to serve.'];
+        });
+
+        return $result['status'] === 'success'
+            ? back()->with('success', $result['message'])
+            : back()->with('error', $result['message']);
     }
 
+    /**
+     * Mark the currently serving visitor as done.
+     */
     public function markDone($officeId)
     {
-        $office = $this->authorizeOffice($officeId);
-        $today = now()->toDateString();
+        $result = DB::transaction(function () use ($officeId) {
+            $office = $this->authorizeOffice($officeId);
+            $today = now()->toDateString();
 
-        $serving = Visitor::where('office_id', $office->id)
-            ->whereDate('created_at', $today)
-            ->where('status', 'serving')
-            ->first();
+            $serving = Visitor::where('office_id', $office->id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'serving')
+                ->first();
 
-        if ($serving) {
+            if (! $serving) {
+                return ['status' => 'error', 'message' => 'No visitor is currently being served.'];
+            }
+
+            $wasPriority = (bool) $serving->priority;
             $serving->update(['status' => 'done']);
-            return back()->with('success', 'Current visitor has been marked as done.');
-        }
 
-        return back()->with('error', 'No visitor is currently being served.');
+            if ($wasPriority) {
+                $office->priority_counter = 0;
+            } else {
+                $office->priority_counter = (int) ($office->priority_counter ?? 0) + 1;
+            }
+            $office->save();
+
+            return ['status' => 'success', 'message' => 'Current visitor has been marked as done.'];
+        });
+
+        return $result['status'] === 'success'
+            ? back()->with('success', $result['message'])
+            : back()->with('error', $result['message']);
     }
 
+    /**
+     * Mark the currently serving visitor as skipped.
+     */
     public function markSkip($officeId)
     {
-        $office = $this->authorizeOffice($officeId);
-        $today = now()->toDateString();
+        $result = DB::transaction(function () use ($officeId) {
+            $office = $this->authorizeOffice($officeId);
+            $today = now()->toDateString();
 
-        $serving = Visitor::where('office_id', $office->id)
-            ->whereDate('created_at', $today)
-            ->where('status', 'serving')
-            ->first();
+            $serving = Visitor::where('office_id', $office->id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'serving')
+                ->first();
 
-        if ($serving) {
+            if (! $serving) {
+                return ['status' => 'error', 'message' => 'No visitor is currently being served.'];
+            }
+
+            $wasPriority = (bool) $serving->priority;
             $serving->update(['status' => 'skipped']);
-            return back()->with('success', 'Current visitor has been marked as skipped.');
-        }
 
-        return back()->with('error', 'No visitor is currently being served.');
+            if ($wasPriority) {
+                $office->priority_counter = 0;
+            } else {
+                $office->priority_counter = (int) ($office->priority_counter ?? 0) + 1;
+            }
+            $office->save();
+
+            return ['status' => 'success', 'message' => 'Current visitor has been marked as skipped.'];
+        });
+
+        return $result['status'] === 'success'
+            ? back()->with('success', $result['message'])
+            : back()->with('error', $result['message']);
     }
 
+    /**
+     * View skipped visitors (today).
+     */
     public function viewSkippedAll(Request $request)
     {
         $today = now()->toDateString();
@@ -118,21 +210,19 @@ class OfficeQueueController extends Controller
             ->whereDate('created_at', $today)
             ->where('status', 'skipped');
 
-        // Staff restriction: only their office
         $user = Auth::user();
-        if ($user && $user->isStaff()) {
+        if ($user && method_exists($user, 'isStaff') && $user->isStaff()) {
             $query->where('office_id', $user->office_id);
         }
 
-        // If searching
         if ($request->has('q') && !empty($request->q)) {
             $search = $request->q;
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhereHas('office', function ($oq) use ($search) {
-                        $oq->where('name', 'like', "%{$search}%");
-                    });
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhereHas('office', function ($oq) use ($search) {
+                      $oq->where('name', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -145,6 +235,9 @@ class OfficeQueueController extends Controller
         return view('queue.skiplist', compact('skipped'));
     }
 
+    /**
+     * Restore skipped visitors.
+     */
     public function restoreSkipped(Request $request)
     {
         $ids = explode(',', $request->input('selected_ids'));
@@ -152,9 +245,8 @@ class OfficeQueueController extends Controller
         $query = Visitor::whereIn('id', $ids)
             ->where('status', 'skipped');
 
-        // Staff restriction: only their office
         $user = Auth::user();
-        if ($user && $user->isStaff()) {
+        if ($user && method_exists($user, 'isStaff') && $user->isStaff()) {
             $query->where('office_id', $user->office_id);
         }
 

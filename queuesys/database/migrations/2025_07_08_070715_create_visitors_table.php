@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('id_number'); // ID No. (Student/Visitor)
             $table->unsignedBigInteger('office_id'); // Reference to offices table
             $table->integer('queue_number');
+            $table->enum('type', ['student', 'visitor']); // New: identify Student or Visitor
+            $table->boolean('priority')->default(false); // New: priority flag (for visitors only)
             $table->enum('status', ['waiting', 'serving', 'done', 'skipped'])->default('waiting');
             $table->timestamps();
 
