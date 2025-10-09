@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisitorController;
 use App\Http\Controllers\OfficeQueueController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\OfficeController;
 use Illuminate\Support\Facades\Route;
 
 // -----------------
@@ -50,6 +51,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{id}/edit', [StaffController::class, 'edit'])->name('staff.edit');
         Route::put('/{id}', [StaffController::class, 'update'])->name('staff.update');
         Route::delete('/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
+    });
+
+    // -----------------
+    // Office Management (Admin Page)
+    // -----------------
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/offices/create', [OfficeController::class, 'create'])->name('offices.create');
+        Route::post('/offices', [OfficeController::class, 'store'])->name('offices.store');
     });
 });
 
