@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 class OfficeQueueController extends Controller
 {
-    /**
-     * Ensure the user can only access their assigned office (if staff).
-     */
     private function authorizeOffice($officeId)
     {
         $office = Office::findOrFail($officeId);
@@ -25,9 +22,6 @@ class OfficeQueueController extends Controller
         return $office;
     }
 
-    /**
-     * Show queue for an office.
-     */
     public function index($officeId)
     {
         $office = $this->authorizeOffice($officeId);
@@ -47,12 +41,6 @@ class OfficeQueueController extends Controller
         return view('queue.office', compact('office', 'serving', 'waiting'));
     }
 
-    /**
-     * Serve the next visitor according to rule:
-     * - Serve 1 priority immediately if available.
-     * - Then require 2 regulars before another priority.
-     * - If no regulars available, fallback to priority (don’t stall).
-     */
     public function next($officeId)
     {
         $result = DB::transaction(function () use ($officeId) {
@@ -127,9 +115,6 @@ class OfficeQueueController extends Controller
             : back()->with('error', $result['message']);
     }
 
-    /**
-     * Mark the currently serving visitor as done.
-     */
     public function markDone($officeId)
     {
         $result = DB::transaction(function () use ($officeId) {
@@ -163,9 +148,6 @@ class OfficeQueueController extends Controller
             : back()->with('error', $result['message']);
     }
 
-    /**
-     * Mark the currently serving visitor as skipped.
-     */
     public function markSkip($officeId)
     {
         $result = DB::transaction(function () use ($officeId) {
@@ -199,9 +181,6 @@ class OfficeQueueController extends Controller
             : back()->with('error', $result['message']);
     }
 
-    /**
-     * View skipped visitors (today).
-     */
     public function viewSkippedAll(Request $request)
     {
         $today = now()->toDateString();
@@ -235,9 +214,6 @@ class OfficeQueueController extends Controller
         return view('queue.skiplist', compact('skipped'));
     }
 
-    /**
-     * Restore skipped visitors.
-     */
     public function restoreSkipped(Request $request)
     {
         $ids = explode(',', $request->input('selected_ids'));

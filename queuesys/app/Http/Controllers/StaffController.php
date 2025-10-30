@@ -14,11 +14,12 @@ class StaffController extends Controller
      */
     public function index()
     {
-        $staff = User::with('office')->get();   // eager load office relation
-        $offices = Office::all();               // fetch offices from DB
+        $staff = User::with('office')->paginate(7);
+        $offices = Office::all();
 
         return view('staff.index', compact('staff', 'offices'));
     }
+
 
     /**
      * Store a newly created staff user
