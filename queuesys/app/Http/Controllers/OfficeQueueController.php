@@ -41,79 +41,120 @@ class OfficeQueueController extends Controller
         return view('queue.office', compact('office', 'serving', 'waiting'));
     }
 
+    // public function next($officeId)
+    // {
+    //     $result = DB::transaction(function () use ($officeId) {
+    //         $office = $this->authorizeOffice($officeId);
+    //         $today = now()->toDateString();
+
+    //         // Finish the current serving (if any)
+    //         $current = Visitor::where('office_id', $office->id)
+    //             ->whereDate('created_at', $today)
+    //             ->where('status', 'serving')
+    //             ->first();
+
+    //         if ($current) {
+    //             $wasPriority = (bool) $current->priority;
+    //             $current->update(['status' => 'done']);
+
+    //             if ($wasPriority) {
+    //                 $office->priority_counter = 0;
+    //             } else {
+    //                 $office->priority_counter = (int) ($office->priority_counter ?? 0) + 1;
+    //             }
+    //             $office->save();
+    //         }
+
+    //         // Find waiting visitors
+    //         $priority = Visitor::where('office_id', $office->id)
+    //             ->whereDate('created_at', $today)
+    //             ->where('status', 'waiting')
+    //             ->where('priority', true)
+    //             ->orderBy('queue_number')
+    //             ->first();
+
+    //         $regular = Visitor::where('office_id', $office->id)
+    //             ->whereDate('created_at', $today)
+    //             ->where('status', 'waiting')
+    //             ->where(function ($q) {
+    //                 $q->where('priority', false)->orWhereNull('priority');
+    //             })
+    //             ->orderBy('queue_number')
+    //             ->first();
+
+    //         if (! $priority && ! $regular) {
+    //             return ['status' => 'empty', 'message' => 'No visitors left to serve.'];
+    //         }
+
+    //         $next = null;
+    //         $counter = (int) ($office->priority_counter ?? 0);
+
+    //         if ($priority) {
+    //             if ($counter >= 2) {
+    //                 // After 2 regulars, priority is allowed again
+    //                 $next = $priority;
+    //             } else {
+    //                 // Need more regulars first, unless no regulars exist
+    //                 $next = $regular ?? $priority;
+    //             }
+    //         } else {
+    //             // No priority waiting, serve regular
+    //             $next = $regular;
+    //         }
+
+    //         if ($next) {
+    //             $next->update(['status' => 'serving']);
+    //             return ['status' => 'success', 'message' => "Visitor #{$next->queue_number} is now being served."];
+    //         }
+
+    //         return ['status' => 'empty', 'message' => 'No visitors left to serve.'];
+    //     });
+
+    //     return $result['status'] === 'success'
+    //         ? back()->with('success', $result['message'])
+    //         : back()->with('error', $result['message']);
+    // }
     public function next($officeId)
-    {
-        $result = DB::transaction(function () use ($officeId) {
-            $office = $this->authorizeOffice($officeId);
-            $today = now()->toDateString();
+{
+    $result = DB::transaction(function () use ($officeId) {
+        $office = $this->authorizeOffice($officeId);
+        $today = now()->toDateString();
 
-            // Finish the current serving (if any)
-            $current = Visitor::where('office_id', $office->id)
-                ->whereDate('created_at', $today)
-                ->where('status', 'serving')
-                ->first();
+        // Finish the current serving (if any)
+        $current = Visitor::where('office_id', $office->id)
+            ->whereDate('created_at', $today)
+            ->where('status', 'serving')
+            ->first();
 
-            if ($current) {
-                $wasPriority = (bool) $current->priority;
-                $current->update(['status' => 'done']);
+        if ($current) {
+            $current->update(['status' => 'done']);
+        }
 
-                if ($wasPriority) {
-                    $office->priority_counter = 0; // reset after serving priority
-                } else {
-                    $office->priority_counter = (int) ($office->priority_counter ?? 0) + 1;
-                }
-                $office->save();
-            }
+        // Get the next waiting visitor in FIFO order
+        $next = Visitor::where('office_id', $office->id)
+            ->whereDate('created_at', $today)
+            ->where('status', 'waiting')
+            ->orderBy('queue_number') // earliest number first
+            ->first();
 
-            // Find waiting visitors
-            $priority = Visitor::where('office_id', $office->id)
-                ->whereDate('created_at', $today)
-                ->where('status', 'waiting')
-                ->where('priority', true)
-                ->orderBy('queue_number')
-                ->first();
-
-            $regular = Visitor::where('office_id', $office->id)
-                ->whereDate('created_at', $today)
-                ->where('status', 'waiting')
-                ->where(function ($q) {
-                    $q->where('priority', false)->orWhereNull('priority');
-                })
-                ->orderBy('queue_number')
-                ->first();
-
-            if (! $priority && ! $regular) {
-                return ['status' => 'empty', 'message' => 'No visitors left to serve.'];
-            }
-
-            $next = null;
-            $counter = (int) ($office->priority_counter ?? 0);
-
-            if ($priority) {
-                if ($counter >= 2) {
-                    // After 2 regulars, priority is allowed again
-                    $next = $priority;
-                } else {
-                    // Need more regulars first, unless no regulars exist
-                    $next = $regular ?? $priority;
-                }
-            } else {
-                // No priority waiting, serve regular
-                $next = $regular;
-            }
-
-            if ($next) {
-                $next->update(['status' => 'serving']);
-                return ['status' => 'success', 'message' => "Visitor #{$next->queue_number} is now being served."];
-            }
-
+        if (! $next) {
             return ['status' => 'empty', 'message' => 'No visitors left to serve.'];
-        });
+        }
 
-        return $result['status'] === 'success'
-            ? back()->with('success', $result['message'])
-            : back()->with('error', $result['message']);
-    }
+        // Serve the next visitor
+        $next->update(['status' => 'serving']);
+
+        return [
+            'status' => 'success',
+            'message' => "Visitor #{$next->queue_number} is now being served."
+        ];
+    });
+
+    return $result['status'] === 'success'
+        ? back()->with('success', $result['message'])
+        : back()->with('error', $result['message']);
+}
+
 
     public function markDone($officeId)
     {
@@ -148,30 +189,47 @@ class OfficeQueueController extends Controller
             : back()->with('error', $result['message']);
     }
 
-    public function markSkip($officeId)
+    public function markSkip(Request $request, $officeId)
     {
-        $result = DB::transaction(function () use ($officeId) {
+        $result = DB::transaction(function () use ($request, $officeId) {
             $office = $this->authorizeOffice($officeId);
             $today = now()->toDateString();
+
+            $selected = $request->input('selected_visitors', []);
+
+            if (!empty($selected)) {
+                $visitors = Visitor::whereIn('id', $selected)
+                    ->where('office_id', $office->id)
+                    ->whereDate('created_at', $today)
+                    ->where('status', 'waiting')
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($visitors->isEmpty()) {
+                    return ['status' => 'error', 'message' => 'No valid visitors found to skip.'];
+                }
+
+                foreach ($visitors as $v) {
+                    $v->update(['status' => 'skipped']);
+                }
+
+                return [
+                    'status' => 'success',
+                    'message' => "{$visitors->count()} visitor(s) skipped successfully."
+                ];
+            }
 
             $serving = Visitor::where('office_id', $office->id)
                 ->whereDate('created_at', $today)
                 ->where('status', 'serving')
+                ->lockForUpdate()
                 ->first();
 
-            if (! $serving) {
+            if (!$serving) {
                 return ['status' => 'error', 'message' => 'No visitor is currently being served.'];
             }
 
-            $wasPriority = (bool) $serving->priority;
             $serving->update(['status' => 'skipped']);
-
-            if ($wasPriority) {
-                $office->priority_counter = 0;
-            } else {
-                $office->priority_counter = (int) ($office->priority_counter ?? 0) + 1;
-            }
-            $office->save();
 
             return ['status' => 'success', 'message' => 'Current visitor has been marked as skipped.'];
         });
@@ -230,4 +288,8 @@ class OfficeQueueController extends Controller
 
         return back()->with('success', 'Selected visitors have been restored to the waiting queue.');
     }
+
+
 }
+
+

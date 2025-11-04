@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisitorController;
 use App\Http\Controllers\OfficeQueueController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\OfficeController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,10 @@ Route::get('/monitor/{office}/data', [OfficeQueueController::class, 'monitorData
 // Visitor Queue Registration (Public)
 Route::get('/register-queue', [VisitorController::class, 'create'])->name('visitor.create');
 Route::post('/register-queue', [VisitorController::class, 'store'])->name('visitor.store');
+
+// Dashboard Refresh
+Route::get('/dashboard/data', [DashboardController::class, 'liveData'])->name('dashboard.data');
+Route::get('/dashboard/staff-data', [DashboardController::class, 'staffData'])->name('dashboard.staff.data');
 
 // -----------------
 // Authenticated User Routes
