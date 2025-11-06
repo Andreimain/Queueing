@@ -6,6 +6,7 @@ use App\Http\Controllers\OfficeQueueController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\OfficeController;
+use App\Models\Office;
 use Illuminate\Support\Facades\Route;
 
 // -----------------
@@ -14,8 +15,9 @@ use Illuminate\Support\Facades\Route;
 
 // Landing page
 Route::get('/', function () {
-    return view('welcome');
-});
+    $offices = Office::all();
+    return view('welcome', compact('offices'));
+})->name('welcome');
 
 // Monitor-Style Preview
 Route::get('/monitor/{office}', [OfficeQueueController::class, 'monitor'])->name('monitor.show');

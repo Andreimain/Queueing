@@ -15,16 +15,15 @@ return new class extends Migration
             $table->id();
             $table->string('first_name');
             $table->string('last_name');
-            $table->string('contact_number'); // Contact Number
-            $table->string('id_number'); // ID No. (Student/Visitor)
-            $table->unsignedBigInteger('office_id'); // Reference to offices table
+            $table->string('contact_number');
+            $table->string('id_number');
+            $table->unsignedBigInteger('office_id');
             $table->integer('queue_number');
-            $table->enum('type', ['student', 'visitor']); // New: identify Student or Visitor
-            $table->boolean('priority')->default(false); // New: priority flag (for visitors only)
+            $table->enum('type', ['student', 'visitor'])->nullable();
+            $table->boolean('priority')->default(false);
             $table->enum('status', ['waiting', 'serving', 'done', 'skipped'])->default('waiting');
             $table->timestamps();
 
-            // Foreign key constraint
             $table->foreign('office_id')
                   ->references('id')
                   ->on('offices')

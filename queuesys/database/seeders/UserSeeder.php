@@ -16,8 +16,8 @@ class UserSeeder extends Seeder
     {
         // Create an Admin
         User::create([
-            'name' => 'sysdev',
-            'email' => 'andreimiguel.abaya@lorma.edu',
+            'name' => 'admin',
+            'email' => 'queue_admin@lorma.edu',
             'password' => Hash::make('sysd3v'),
             'role' => 'admin',
             'office_id' => null,

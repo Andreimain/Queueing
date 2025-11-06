@@ -30,13 +30,11 @@ class VisitorController extends Controller
             'contact_number' => 'required|string|max:15',
             'id_number'      => 'required|string|max:50',
             'office_id'      => 'required|exists:offices,id',
-            'type'           => 'required|in:student,visitor',
             'priority'       => 'nullable|boolean',
         ]);
 
         $today = now()->toDateString();
 
-        // Get the latest queue number for today's date and selected office
         $maxQueueNumber = Visitor::where('office_id', $request->office_id)
             ->whereDate('created_at', $today)
             ->max('queue_number');
@@ -51,11 +49,9 @@ class VisitorController extends Controller
             'office_id'       => $request->office_id,
             'queue_number'    => $nextNumber,
             'status'          => 'waiting',
-            'type'            => $request->type,
             'priority'        => $request->type === 'visitor' ? (bool) $request->priority : false,
         ]);
 
-        // Show ticket page instead of redirecting back
         return view('ticket', compact('visitor'));
     }
 }
