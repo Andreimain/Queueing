@@ -18,7 +18,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('visitor.store') }}" class="space-y-5" autocomplete="off">
+        <form id="visitorForm" method="POST" action="{{ route('visitor.store') }}" class="space-y-5" autocomplete="off">
             @csrf
 
             <div>
@@ -63,11 +63,33 @@
             </div>
 
             <div class="pt-4">
-                <button type="submit"
-                        class="w-full bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 transition">
+                <button id="submitButton" type="submit"
+                        class="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 transition">
                     Join Queue
                 </button>
             </div>
         </form>
     </div>
+
+    <script>
+        const form = document.getElementById('visitorForm');
+        const button = document.getElementById('submitButton');
+
+        form.addEventListener('submit', function () {
+            // Disable button
+            button.disabled = true;
+            button.classList.add('opacity-70', 'cursor-not-allowed');
+
+            // Spinner with emerald color
+            button.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-emerald-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z">
+                    </path>
+                </svg>
+                Processing...
+            `;
+        });
+    </script>
 </x-guest-layout>
