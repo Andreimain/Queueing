@@ -20,17 +20,17 @@
             {{ $visitor->id_number }}
         </div>
 
-        <!-- Space for QR Code -->
-        <div id="qr-placeholder"
-             class="h-32 flex items-center justify-center mb-8 border-2 border-dashed border-emerald-300 rounded-xl bg-emerald-50/50">
-            <span class="text-emerald-400">QR Code Placeholder</span>
+        <!-- QR Code -->
+        <div class="flex flex-col items-center justify-center mb-8">
+            {!! QrCode::size(150)->color(5, 150, 105)->generate(route('monitor.show', $visitor->office->id)) !!}
+            <p class="text-sm text-emerald-600 mt-2">Scan to view {{ $visitor->office->name }} queue</p>
         </div>
 
         <!-- Stacked Buttons -->
         <div class="flex flex-col gap-3">
-            <a href="{{ route('welcome') }}"
+            <a href="{{ route('monitor.show', $visitor->office->id) }}"
                class="px-6 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition">
-                ← View Queue List
+                ← View {{ $visitor->office->name }} Queue
             </a>
 
             <a href="{{ route('visitor.create') }}"
