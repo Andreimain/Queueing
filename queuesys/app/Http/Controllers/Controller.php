@@ -13,12 +13,13 @@ class Controller extends BaseController
     {
         $today  = Carbon::today();
         $office = Office::findOrFail($officeId);
+        $cashiers = $office->staff()->get();
 
-        $currentQueue = Visitor::where('office_id', $office->id)
+        $servingVisitors = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
-            ->orderBy('updated_at', 'desc')
-            ->first();
+            ->get()
+            ->keyBy('cashier_id');
 
         $upcomingQueues = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
@@ -27,25 +28,23 @@ class Controller extends BaseController
             ->take(5)
             ->get();
 
-        return view('monitor.show', [
-            'office'         => $office,
-            'currentQueue'   => $currentQueue,
-            'upcomingQueues' => $upcomingQueues,
-        ]);
+        return view('monitor.show', compact('office', 'cashiers', 'servingVisitors', 'upcomingQueues'));
     }
 
-    public function monitorData($office)
+    public function monitorData($officeId)
     {
-        $office = \App\Models\Office::findOrFail($office);
-        $today  = \Carbon\Carbon::today();
+        $today  = Carbon::today();
+        $office = Office::findOrFail($officeId);
 
-        $currentQueue = \App\Models\Visitor::where('office_id', $office->id)
+        $cashiers = $office->staff()->get();
+
+        $servingVisitors = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
-            ->orderBy('updated_at', 'desc')
-            ->first();
+            ->get()
+            ->keyBy('cashier_id');
 
-        $upcomingQueues = \App\Models\Visitor::where('office_id', $office->id)
+        $upcomingQueues = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'waiting')
             ->orderBy('queue_number', 'asc')
@@ -53,15 +52,24 @@ class Controller extends BaseController
             ->get();
 
         return response()->json([
-            'currentQueue' => $currentQueue ? [
-                'id_number' => $currentQueue->id_number,
-            ] : null,
+            'cashiers' => $cashiers->map(function ($c) use ($servingVisitors) {
+                return [
+                    'id'      => $c->id,
+                    'name'    => $c->name,
+                    'serving' => $servingVisitors->has($c->id)
+                        ? [
+                            'id_number'    => $servingVisitors[$c->id]->id_number,
+                            'queue_number' => $servingVisitors[$c->id]->queue_number,
+                        ]
+                        : null,
+                ];
+            }),
             'upcomingQueues' => $upcomingQueues->map(function ($v) {
                 return [
-                    'id_number' => $v->id_number,
+                    'id_number'    => $v->id_number,
+                    'queue_number' => $v->queue_number,
                 ];
-            })->values(),
+            }),
         ]);
     }
-
 }

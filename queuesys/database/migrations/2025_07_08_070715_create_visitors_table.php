@@ -20,14 +20,23 @@ return new class extends Migration
             $table->unsignedBigInteger('office_id');
             $table->integer('queue_number');
             $table->enum('type', ['student', 'visitor'])->nullable();
+            $table->unsignedBigInteger('cashier_id')->nullable();
+
+            $table->foreign('office_id')
+            ->references('id')
+            ->on('offices')
+            ->onDelete('cascade');
+
+            $table->foreign('cashier_id')
+            ->references('id')
+            ->on('users')
+            ->onDelete('set null');
+
             $table->boolean('priority')->default(false);
             $table->enum('status', ['waiting', 'serving', 'done', 'skipped'])->default('waiting');
             $table->timestamps();
 
-            $table->foreign('office_id')
-                  ->references('id')
-                  ->on('offices')
-                  ->onDelete('cascade');
+
         });
     }
 

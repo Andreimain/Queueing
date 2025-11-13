@@ -24,6 +24,6 @@ class OfficeController extends Controller
             'name' => $request->name,
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Office created successfully!');
+        return redirect()->back()->with('success', 'Office created successfully!');
     }
 }

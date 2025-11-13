@@ -60,9 +60,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
     });
 
-    // -----------------
-    // Office Management (Admin Page)
-    // -----------------
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/offices/create', [OfficeController::class, 'create'])->name('offices.create');
         Route::post('/offices', [OfficeController::class, 'store'])->name('offices.store');

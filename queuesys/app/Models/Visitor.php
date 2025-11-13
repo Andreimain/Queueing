@@ -18,6 +18,7 @@ class Visitor extends Model
         'queue_number',
         'status',
         'priority',
+        'cashier_id',
     ];
 
     protected $casts = [
@@ -31,4 +32,9 @@ class Visitor extends Model
     {
         return $this->belongsTo(Office::class);
     }
+
+    public function cashier() {
+        return $this->belongsTo(User::class, 'cashier_id');
+    }
+
 }

@@ -56,6 +56,11 @@ class User extends Authenticatable
         return $this->belongsTo(Office::class);
     }
 
+    public function visitors()
+    {
+        return $this->hasMany(Visitor::class, 'cashier_id');
+    }
+
     /**
      * Role helpers
      */

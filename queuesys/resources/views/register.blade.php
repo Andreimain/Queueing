@@ -76,11 +76,10 @@
         const button = document.getElementById('submitButton');
 
         form.addEventListener('submit', function () {
-            // Disable button
+
             button.disabled = true;
             button.classList.add('opacity-70', 'cursor-not-allowed');
 
-            // Spinner with emerald color
             button.innerHTML = `
                 <svg class="animate-spin h-5 w-5 text-emerald-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

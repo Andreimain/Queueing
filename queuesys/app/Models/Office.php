@@ -32,4 +32,9 @@ class Office extends Model
         return $this->belongsTo(Office::class);
     }
 
+    public function staff()
+    {
+        return $this->hasMany(User::class)->where('role', 'staff');
+    }
+
 }
