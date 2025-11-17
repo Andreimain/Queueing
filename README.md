@@ -123,7 +123,7 @@ Open your `.env` file and set your database values:
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=queue_system_db
+DB_DATABASE=your_database_name_here
 DB_USERNAME=root
 DB_PASSWORD=your_password_here
 ```
@@ -137,8 +137,8 @@ php artisan migrate
 This will create the required tables such as:
 
 * offices
-* tickets
-* users (if authentication is enabled)
+* visitors
+* users
 
 ### 8. Seed Database (Optional)
 
