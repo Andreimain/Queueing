@@ -26,7 +26,7 @@ This system assigns ticket numbers per office, resets queues daily, and allows s
 ### 🛠 Admin Module
 
 * Monitor all office queues in one dashboard
-* View queue activity and history
+* View queue activity
 
 ---
 
