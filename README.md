@@ -35,7 +35,7 @@ This system assigns ticket numbers per office, resets queues daily, and allows s
 * **Laravel**
 * **PHP** (>= 8.1)
 * **Tailwind CSS**
-* **MySQL**
+* **MySQL or SQLite**
 
 ---
 
