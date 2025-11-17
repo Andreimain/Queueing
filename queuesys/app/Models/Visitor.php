@@ -16,6 +16,7 @@ class Visitor extends Model
         'id_number',
         'office_id',
         'queue_number',
+        'ticket_number',
         'status',
         'priority',
         'cashier_id',
@@ -25,9 +26,6 @@ class Visitor extends Model
         'priority' => 'boolean',
     ];
 
-    /**
-     * A Visitor belongs to an Office.
-     */
     public function office()
     {
         return $this->belongsTo(Office::class);

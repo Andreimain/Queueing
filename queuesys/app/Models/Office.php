@@ -15,6 +15,7 @@ class Office extends Model
      */
     protected $fillable = [
         'name',
+        'abbreviation',
         'priority_counter',
     ];
 

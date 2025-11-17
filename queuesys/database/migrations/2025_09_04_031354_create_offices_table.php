@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('offices', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
+            $table->string('abbreviation')->unique();
             $table->unsignedTinyInteger('priority_counter')->default(0);
             $table->timestamps();
         });

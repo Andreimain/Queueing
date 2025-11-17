@@ -25,7 +25,7 @@ class Controller extends BaseController
             ->whereDate('created_at', $today)
             ->where('status', 'waiting')
             ->orderBy('queue_number', 'asc')
-            ->take(5)
+            ->take(15)
             ->get();
 
         return view('monitor.show', compact('office', 'cashiers', 'servingVisitors', 'upcomingQueues'));
@@ -58,7 +58,7 @@ class Controller extends BaseController
                     'name'    => $c->name,
                     'serving' => $servingVisitors->has($c->id)
                         ? [
-                            'id_number'    => $servingVisitors[$c->id]->id_number,
+                            'ticket_number' => $servingVisitors[$c->id]->ticket_number,
                             'queue_number' => $servingVisitors[$c->id]->queue_number,
                         ]
                         : null,
@@ -66,7 +66,7 @@ class Controller extends BaseController
             }),
             'upcomingQueues' => $upcomingQueues->map(function ($v) {
                 return [
-                    'id_number'    => $v->id_number,
+                    'ticket_number' => $v->ticket_number,
                     'queue_number' => $v->queue_number,
                 ];
             }),

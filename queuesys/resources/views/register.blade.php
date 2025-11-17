@@ -44,7 +44,7 @@
 
             <div>
                 <label class="block text-sm font-semibold text-emerald-800">Student ID No. / Visitor ID No.</label>
-                <input type="text" name="id_number" required
+                <input type="text" name="id_number"
                        value="{{ old('id_number') }}"
                        class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition">
             </div>
@@ -71,24 +71,5 @@
         </form>
     </div>
 
-    <script>
-        const form = document.getElementById('visitorForm');
-        const button = document.getElementById('submitButton');
-
-        form.addEventListener('submit', function () {
-
-            button.disabled = true;
-            button.classList.add('opacity-70', 'cursor-not-allowed');
-
-            button.innerHTML = `
-                <svg class="animate-spin h-5 w-5 text-emerald-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z">
-                    </path>
-                </svg>
-                Processing...
-            `;
-        });
-    </script>
+    @vite('resources/js/register-form.js')
 </x-guest-layout>

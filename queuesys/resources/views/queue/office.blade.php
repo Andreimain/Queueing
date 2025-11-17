@@ -41,7 +41,7 @@
                                     #{{ $visitor->queue_number }}
                                 </div>
                                 <div class="text-lg mt-2 font-semibold">
-                                    {{ $visitor->first_name }} {{ $visitor->last_name }}
+                                    {{ $visitor->first_name }} {{ $visitor->last_name }} - {{ $visitor->ticket_number }}
                                 </div>
                                 <div class="text-sm text-gray-600 mt-1">
                                     Cashier: {{ $visitor->cashier->name ?? 'Unassigned' }}
@@ -102,7 +102,7 @@
                                                 <span class="font-semibold {{ $visitor->priority ? 'text-red-600' : 'text-emerald-700' }}">
                                                     #{{ $visitor->queue_number }}
                                                 </span> —
-                                                {{ $visitor->first_name }} {{ $visitor->last_name }}
+                                                {{ $visitor->first_name }} {{ $visitor->last_name }} - {{ $visitor->ticket_number }}
                                             </div>
                                         </li>
                                     @endforeach
@@ -127,29 +127,5 @@
         </div>
     </div>
 
-    <script>
-        let pauseRefresh = false;
-
-        document.addEventListener('change', () => {
-            const checked = document.querySelectorAll('input[name="selected_visitors[]"]:checked').length;
-            const btn = document.getElementById('skipSelectedBtn');
-            if (btn) btn.disabled = checked === 0;
-
-            pauseRefresh = checked > 0;
-        });
-
-        setInterval(function() {
-            if (pauseRefresh) return;
-
-            fetch(window.location.href)
-                .then(res => res.text())
-                .then(html => {
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const newContent = doc.querySelector('#queue-area').innerHTML;
-                    document.querySelector('#queue-area').innerHTML = newContent;
-                })
-                .catch(err => console.error('Error refreshing queue:', err));
-        }, 3000);
-    </script>
-
+    @vite('resources/js/queue-refresh.js')
 </x-app-layout>

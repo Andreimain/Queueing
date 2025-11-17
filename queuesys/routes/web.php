@@ -9,10 +9,6 @@ use App\Http\Controllers\OfficeController;
 use App\Models\Office;
 use Illuminate\Support\Facades\Route;
 
-// -----------------
-// Public Routes
-// -----------------
-
 // Landing page
 Route::get('/', function () {
     $offices = Office::all();
@@ -27,16 +23,11 @@ Route::get('/monitor/{office}/data', [OfficeQueueController::class, 'monitorData
 Route::get('/register-queue', [VisitorController::class, 'create'])->name('visitor.create');
 Route::post('/register-queue', [VisitorController::class, 'store'])->name('visitor.store');
 
-// Dashboard Refresh
-Route::get('/dashboard/data', [DashboardController::class, 'liveData'])->name('dashboard.data');
-Route::get('/dashboard/staff-data', [DashboardController::class, 'staffData'])->name('dashboard.staff.data');
-
-// -----------------
-// Authenticated User Routes
-// -----------------
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
-    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/data', [DashboardController::class, 'liveData'])->name('dashboard.data');
+    Route::get('/dashboard/staff-data', [DashboardController::class, 'staffData'])->name('dashboard.staff.data');
 
     // Profile
     Route::prefix('profile')->group(function () {
@@ -66,9 +57,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-// -----------------
-// Office Routes (must be logged in)
-// -----------------
 Route::prefix('office')->middleware('auth')->group(function () {
     Route::get('{office}/queue', [OfficeQueueController::class, 'index'])->name('office.queue');
     Route::post('{office}/next', [OfficeQueueController::class, 'next'])->name('office.queue.next');

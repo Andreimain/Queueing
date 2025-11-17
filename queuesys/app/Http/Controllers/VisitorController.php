@@ -28,28 +28,32 @@ class VisitorController extends Controller
             'first_name'     => 'required|string|max:50',
             'last_name'      => 'required|string|max:50',
             'contact_number' => 'required|string|max:15',
-            'id_number'      => 'required|string|max:50',
+            'id_number'      => 'nullable|string|max:50',
             'office_id'      => 'required|exists:offices,id',
             'priority'       => 'nullable|boolean',
         ]);
 
+        $office = Office::findOrFail($request->office_id);
         $today = now()->toDateString();
 
-        $maxQueueNumber = Visitor::where('office_id', $request->office_id)
+        $lastQueue = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->max('queue_number');
 
-        $nextNumber = $maxQueueNumber ? $maxQueueNumber + 1 : 1;
+        $queueNumber = ($lastQueue ?? 0) + 1;
+
+        $ticketNumber = $office->abbreviation . '-' . str_pad($queueNumber, 3, '0', STR_PAD_LEFT);
 
         $visitor = Visitor::create([
-            'first_name'      => $request->first_name,
-            'last_name'       => $request->last_name,
-            'contact_number'  => $request->contact_number,
-            'id_number'       => $request->id_number,
-            'office_id'       => $request->office_id,
-            'queue_number'    => $nextNumber,
-            'status'          => 'waiting',
-            'priority'        => $request->type === 'visitor' ? (bool) $request->priority : false,
+            'first_name'     => $request->first_name,
+            'last_name'      => $request->last_name,
+            'contact_number' => $request->contact_number,
+            'id_number'      => $request->id_number,
+            'office_id'      => $office->id,
+            'queue_number'   => $queueNumber,
+            'ticket_number'  => $ticketNumber,
+            'status'         => 'waiting',
+            'priority' => (bool) $request->priority,
         ]);
 
         return view('ticket', compact('visitor'));

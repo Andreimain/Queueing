@@ -18,10 +18,12 @@ class OfficeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:offices,name',
+            'abbreviation' => 'required|string|max:10',
         ]);
 
         Office::create([
             'name' => $request->name,
+            'abbreviation' => strtoupper($request->abbreviation),
         ]);
 
         return redirect()->back()->with('success', 'Office created successfully!');

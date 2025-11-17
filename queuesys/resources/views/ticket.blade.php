@@ -11,13 +11,13 @@
         <h1 class="text-3xl font-bold mb-4 text-emerald-800">You have joined the queue!</h1>
 
         <p class="text-lg mb-2 text-emerald-700">
-            Your registered ID number for
+            Your ticket queued for
             <strong class="text-emerald-600">{{ $visitor->office->name }}</strong> is:
         </p>
 
         <!-- Display ID Number -->
         <div class="text-6xl font-extrabold text-emerald-600 my-6">
-            {{ $visitor->id_number }}
+            {{ $visitor->ticket_number }}
         </div>
 
         <!-- QR Code -->

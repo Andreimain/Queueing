@@ -43,6 +43,13 @@
                                            placeholder="Enter office name">
                                 </div>
 
+                                <div>
+                                    <label class="block text-sm font-medium text-green-700">Abbreviation</label>
+                                    <input type="text" name="abbreviation" required
+                                           class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500"
+                                           placeholder="e.g., BO, LB, SA, RO">
+                                </div>
+
                                 <div class="mt-6">
                                     <button type="submit"
                                             class="py-2 px-4 rounded shadow font-semibold text-sm"
@@ -66,12 +73,14 @@
                                     <thead class="bg-green-600 text-black">
                                         <tr>
                                             <th class="px-4 py-2 border border-green-700 text-left">Office Name</th>
+                                            <th class="px-4 py-2 border border-green-700 text-left">Abbreviation</th>
                                         </tr>
                                     </thead>
                                     <tbody class="text-black">
                                         @forelse($offices as $office)
                                             <tr class="hover:bg-green-100">
                                                 <td class="px-4 py-2 border border-green-300">{{ $office->name }}</td>
+                                                <td class="px-4 py-2 border border-green-300">{{ $office->abbreviation }}</td>
                                             </tr>
                                         @empty
                                             <tr>
@@ -85,7 +94,7 @@
                             </div>
                         </div>
 
-                    </div> <!-- End Grid -->
+                    </div>
                 </div>
             </div>
         </div>

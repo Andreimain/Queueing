@@ -16,9 +16,10 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->string('contact_number');
-            $table->string('id_number');
+            $table->string('id_number')->nullable();
             $table->unsignedBigInteger('office_id');
             $table->integer('queue_number');
+            $table->integer('ticket_number');
             $table->enum('type', ['student', 'visitor'])->nullable();
             $table->unsignedBigInteger('cashier_id')->nullable();
 

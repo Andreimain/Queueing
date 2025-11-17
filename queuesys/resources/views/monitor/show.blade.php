@@ -18,7 +18,7 @@
                         <div class="text-center serving">
                             @if(isset($servingVisitors[$cashier->id]))
                                 <div class="text-3xl sm:text-4xl font-bold text-emerald-600 break-words">
-                                    {{ $servingVisitors[$cashier->id]->id_number }}
+                                    {{ $servingVisitors[$cashier->id]->ticket_number }}
                                 </div>
                                 <div class="text-gray-700 mt-1 text-lg">
                                     #{{ $servingVisitors[$cashier->id]->queue_number }}
@@ -36,7 +36,7 @@
                 <h2 class="text-3xl sm:text-5xl font-semibold mb-4 sm:mb-6 text-center text-emerald-800">Upcoming Queues</h2>
                 <ul id="upcoming-queues" class="list-disc pl-6 sm:pl-8 space-y-3 sm:space-y-4 text-2xl sm:text-3xl">
                     @forelse($upcomingQueues as $queue)
-                        <li class="break-words text-gray-800">{{ $queue->id_number }}</li>
+                        <li class="break-words text-gray-800">{{ $queue->ticket_number }}</li>
                     @empty
                         <li class="text-gray-500">No upcoming queues</li>
                     @endforelse
@@ -46,46 +46,8 @@
         </div>
     </div>
 
-    <!-- Auto Refresh Script -->
     <script>
-        function refreshMonitor() {
-            fetch("{{ route('monitor.data', $office->id) }}")
-                .then(res => res.json())
-                .then(data => {
-                    // Update each cashier's serving info
-                    document.querySelectorAll('[data-cashier-id]').forEach(container => {
-                        const cashierId = container.getAttribute('data-cashier-id');
-                        const cashier = data.cashiers.find(c => c.id == cashierId);
-                        if (!cashier) return;
-
-                        const servingDiv = container.querySelector('.serving');
-                        if (cashier.serving) {
-                            servingDiv.innerHTML = `
-                                <div class="text-3xl sm:text-4xl font-bold text-emerald-600 break-words">
-                                    ${cashier.serving.id_number}
-                                </div>
-                                <div class="text-gray-700 mt-1 text-lg">
-                                    #${cashier.serving.queue_number}
-                                </div>`;
-                        } else {
-                            servingDiv.innerHTML = `<div class="text-2xl sm:text-3xl text-gray-400">Idle</div>`;
-                        }
-                    });
-
-                    // Update upcoming queues
-                    const upcomingList = document.getElementById('upcoming-queues');
-                    if (data.upcomingQueues.length > 0) {
-                        upcomingList.innerHTML = data.upcomingQueues.map(q =>
-                            `<li class="text-2xl sm:text-3xl break-words text-gray-800">${q.id_number}</li>`
-                        ).join('');
-                    } else {
-                        upcomingList.innerHTML = `<li class="text-gray-500">No upcoming queues</li>`;
-                    }
-                })
-                .catch(err => console.error('Error refreshing monitor:', err));
-        }
-
-        // Refresh every second
-        setInterval(refreshMonitor, 1000);
+        window.officeId = {{ $office->id }};
     </script>
+    @vite('resources/js/monitor-refresh.js')
 </x-guest-layout>
