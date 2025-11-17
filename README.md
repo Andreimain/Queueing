@@ -166,6 +166,6 @@ npm run dev
 
 **Access the Application**
 
-Preview of Office Queues: http://localhost:8000
-Enter Queueing: http://localhost:8000/register-queue
-Login: http://localhost:8000/login
+1. Preview of Office Queues: http://localhost:8000
+2. Enter Queueing: http://localhost:8000/register-queue
+3. Login: http://localhost:8000/login
