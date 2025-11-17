@@ -163,3 +163,9 @@ npm run dev
 ```
 
 ---
+
+**Access the Application**
+
+Preview of Office Queues: http://localhost:8000
+Enter Queueing: http://localhost:8000/register-queue
+Login: http://localhost:8000/login
