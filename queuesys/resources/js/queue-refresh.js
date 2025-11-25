@@ -1,19 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     let pauseRefresh = false;
 
-    // Detect checkbox changes
-    document.addEventListener('change', () => {
-        const checked = document.querySelectorAll('input[name="selected_visitors[]"]:checked').length;
-        const btn = document.getElementById('skipSelectedBtn');
-        if (btn) btn.disabled = checked === 0;
+    // Multi-skip checkboxes
+    const checkboxes = document.querySelectorAll('input[name="selected_visitors[]"]');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const checked = document.querySelectorAll('input[name="selected_visitors[]"]:checked').length;
+            const btn = document.getElementById('skipSelectedBtn');
+            if (btn) btn.disabled = checked === 0;
 
-        pauseRefresh = checked > 0;
+            pauseRefresh = checked > 0;
+        });
     });
 
-    // Auto-refresh queue area
-    setInterval(() => {
-        if (pauseRefresh) return;
+    const refreshQueue = () => {
+        // Pause if staff is serving a visitor
+        const servingVisitor = document.querySelectorAll('[data-serving="true"]').length > 0;
 
+        if (pauseRefresh || servingVisitor) return; // pause refresh
         fetch(window.location.href)
             .then(res => res.text())
             .then(html => {
@@ -23,5 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (queueArea) queueArea.innerHTML = newContent;
             })
             .catch(err => console.error('Error refreshing queue:', err));
-    }, 3000);
+    };
+
+    setInterval(refreshQueue, 3000);
 });

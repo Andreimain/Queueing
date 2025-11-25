@@ -43,7 +43,9 @@ class OfficeQueueController extends Controller
             ->orderBy('queue_number')
             ->get();
 
-        return view('queue.office', compact('office', 'serving', 'waiting'));
+        $allOffices = Office::all();
+
+        return view('queue.office', compact('office', 'serving', 'waiting', 'allOffices'));
     }
 
     // Assign the next waiting visitor to the logged-in cashier
@@ -231,5 +233,51 @@ class OfficeQueueController extends Controller
 
         $query->update(['status' => 'waiting']);
         return back()->with('success', 'Selected visitors restored to waiting queue.');
+    }
+    public function transfer(Request $request, $id)
+    {
+        $request->validate([
+            'new_office_id' => 'required|exists:offices,id',
+        ]);
+
+        $visitor = Visitor::findOrFail($id);
+
+        // Only allow transfer if the visitor is currently being served by this staff
+        if ($visitor->status !== 'serving' || $visitor->cashier_id !== auth()->id()) {
+            return back()->with('error', 'You can only transfer a visitor you are currently serving.');
+        }
+
+        // Save previous office
+        $visitor->previous_office_id = $visitor->office_id;
+
+        // Assign new office
+        $visitor->office_id = $request->new_office_id;
+        $visitor->queue_number = (Visitor::where('office_id', $request->new_office_id)->max('queue_number') ?? 0) + 1;
+
+        // Generate ticket with new office prefix
+        $office = Office::findOrFail($request->new_office_id);
+
+        // Get last ticket number for this office
+        $lastTicket = Visitor::where('office_id', $request->new_office_id)
+            ->whereDate('created_at', now()->toDateString())
+            ->orderByDesc('ticket_number')
+            ->value('ticket_number');
+
+        $lastNumber = 0;
+        if ($lastTicket) {
+            // Extract numeric part of last ticket
+            $parts = explode('-', $lastTicket);
+            $lastNumber = (int) end($parts);
+        }
+
+        $visitor->ticket_number = $office->abbreviation . '-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+
+        // Reset status and cashier
+        $visitor->status = 'waiting';
+        $visitor->cashier_id = null;
+
+        $visitor->save();
+
+        return back()->with('success', 'Visitor transferred successfully.');
     }
 }

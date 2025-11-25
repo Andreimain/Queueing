@@ -15,6 +15,7 @@ class Visitor extends Model
         'contact_number',
         'id_number',
         'office_id',
+        'previous_office_id',
         'queue_number',
         'ticket_number',
         'status',

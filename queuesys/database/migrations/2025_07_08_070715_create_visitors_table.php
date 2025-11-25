@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('contact_number');
             $table->string('id_number')->nullable();
             $table->unsignedBigInteger('office_id');
+            $table->unsignedBigInteger('previous_office_id')->nullable();
             $table->integer('queue_number');
             $table->integer('ticket_number');
             $table->enum('type', ['student', 'visitor'])->nullable();
@@ -27,6 +28,11 @@ return new class extends Migration
             ->references('id')
             ->on('offices')
             ->onDelete('cascade');
+
+            $table->foreign('previous_office_id')
+            ->references('id')
+            ->on('offices')
+            ->onDelete('set null');
 
             $table->foreign('cashier_id')
             ->references('id')

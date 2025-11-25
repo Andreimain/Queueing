@@ -50,6 +50,7 @@ class VisitorController extends Controller
             'contact_number' => $request->contact_number,
             'id_number'      => $request->id_number,
             'office_id'      => $office->id,
+            'previous_office_id' => null,
             'queue_number'   => $queueNumber,
             'ticket_number'  => $ticketNumber,
             'status'         => 'waiting',

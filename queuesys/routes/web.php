@@ -42,6 +42,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/restore', [OfficeQueueController::class, 'restoreSkipped'])->name('skipped.restore');
     });
 
+    //Transfer Visitor
+    Route::post('/queue/transfer/{visitor}', [OfficeQueueController::class, 'transfer'])->name('office.queue.transfer');
+
     // Staff Management
     Route::prefix('staff')->group(function () {
         Route::get('/', [StaffController::class, 'index'])->name('staff.index');
