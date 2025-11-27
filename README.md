@@ -49,6 +49,7 @@ This system assigns ticket numbers per office, resets queues daily, and allows s
    * Serve next visitor
    * Skip a visitor
    * Mark as done
+   * Transfer visitors
 5. Daily, queue numbers automatically reset while keeping history
 
 ---
