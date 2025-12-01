@@ -52,7 +52,7 @@
                                 {{-- Transfer Form --}}
                                 @if ($visitor->cashier_id === auth()->id())
                                     <form method="POST" action="{{ route('office.queue.transfer', $visitor->id) }}"
-                                        class="mt-3">
+                                        class="mt-3 transfer-form">
                                         @csrf
                                         <select name="new_office_id" required
                                             class="w-full p-2 border border-gray-300 rounded-md bg-white">
@@ -128,8 +128,7 @@
                                                     value="{{ $visitor->id }}"
                                                     class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                                                 <span
-                                                    class="font-semibold {{ $visitor->priority ? 'text-red-600' : 'text-emerald-700' }}">
-                                                    #{{ $visitor->queue_number }}
+                                                    class="font-semibold {{ $visitor->priority ? 'text-red-600' : 'text-emerald-700' }}">#{{ $visitor->queue_number }}
                                                 </span> —
                                                 {{ $visitor->first_name }} {{ $visitor->last_name }} -
                                                 {{ $visitor->ticket_number }}
@@ -157,5 +156,16 @@
         </div>
     </div>
 
+    <div id="transferModal" class="fixed inset-0 items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md text-center mx-auto">
+            <p class="mt-4 text-gray-700">Their new ticket is:</p>
+            <h2 class="text-3xl font-bold text-gray-900" id="newTicketNumber"></h2>
+            <p class="mt-4 text-gray-700">Your visitor has been transferred successfully.</p>
+            <button id="closeModalBtn"
+                class="mt-6 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">Close</button>
+        </div>
+    </div>
+
     @vite('resources/js/queue-refresh.js')
+    @vite('resources/js/transfer-modal.js')
 </x-app-layout>

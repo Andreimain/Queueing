@@ -1,6 +1,6 @@
 <x-guest-layout>
     <div class="w-full max-w-md bg-white/80 backdrop-blur-sm border border-emerald-200 p-8 rounded-2xl shadow-lg">
-        <h1 class="text-3xl font-bold text-center text-emerald-800 mb-8">Visitor Registration</h1>
+        <h1 class="text-3xl font-bold text-center text-emerald-800 mb-8">Registration</h1>
 
         @if ($errors->any())
             <div class="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">

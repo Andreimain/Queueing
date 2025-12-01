@@ -40,7 +40,7 @@ return new class extends Migration
             ->onDelete('set null');
 
             $table->boolean('priority')->default(false);
-            $table->enum('status', ['waiting', 'serving', 'done', 'skipped'])->default('waiting');
+            $table->enum('status', ['waiting', 'serving', 'done', 'skipped', 'transferred'])->default('waiting');
             $table->timestamps();
 
 

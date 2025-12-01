@@ -240,44 +240,60 @@ class OfficeQueueController extends Controller
             'new_office_id' => 'required|exists:offices,id',
         ]);
 
-        $visitor = Visitor::findOrFail($id);
+        $old = Visitor::findOrFail($id);
 
-        // Only allow transfer if the visitor is currently being served by this staff
-        if ($visitor->status !== 'serving' || $visitor->cashier_id !== auth()->id()) {
+        if ($old->status !== 'serving' || $old->cashier_id !== auth()->id()) {
             return back()->with('error', 'You can only transfer a visitor you are currently serving.');
         }
 
-        // Save previous office
-        $visitor->previous_office_id = $visitor->office_id;
+        $old->status = 'transferred';
+        $old->save();
 
-        // Assign new office
-        $visitor->office_id = $request->new_office_id;
-        $visitor->queue_number = (Visitor::where('office_id', $request->new_office_id)->max('queue_number') ?? 0) + 1;
+        $newOffice = Office::findOrFail($request->new_office_id);
 
-        // Generate ticket with new office prefix
-        $office = Office::findOrFail($request->new_office_id);
+        $nextQueue = (Visitor::where('office_id', $newOffice->id)
+            ->max(DB::raw('CAST(SUBSTR(ticket_number, 4) AS INTEGER)')) ?? 0) + 1;
 
-        // Get last ticket number for this office
-        $lastTicket = Visitor::where('office_id', $request->new_office_id)
-            ->whereDate('created_at', now()->toDateString())
-            ->orderByDesc('ticket_number')
-            ->value('ticket_number');
+        $prefix = $newOffice->abbreviation;
+        $nextTicket = sprintf("%s-%03d", $prefix, $nextQueue);
 
-        $lastNumber = 0;
-        if ($lastTicket) {
-            // Extract numeric part of last ticket
-            $parts = explode('-', $lastTicket);
-            $lastNumber = (int) end($parts);
+
+        $new = Visitor::create([
+            'first_name'          => $old->first_name,
+            'last_name'           => $old->last_name,
+            'contact_number'      => $old->contact_number,
+            'id_number'           => $old->id_number,
+
+            'office_id'           => $newOffice->id,
+            'previous_office_id'  => $old->office_id,
+
+            'queue_number'        => $nextQueue,
+            'ticket_number'       => $nextTicket,
+
+            'status'              => 'waiting',
+            'priority'            => $old->priority,
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'new_ticket' => $nextTicket,
+            ]);
         }
 
-        $visitor->ticket_number = $office->abbreviation . '-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-
-        // Reset status and cashier
-        $visitor->status = 'waiting';
-        $visitor->cashier_id = null;
-
-        $visitor->save();
-
         return back()->with('success', 'Visitor transferred successfully.');
+    }
+
+
+    private function transferResponse(Request $request, array $data)
+    {
+        if ($request->ajax()) {
+            return response()->json($data);
+        }
+
+        return back()->with(
+            $data['success'] ? 'success' : 'error',
+            $data['success'] ? 'Visitor transferred successfully.' : $data['message']
+        );
     }
 }
