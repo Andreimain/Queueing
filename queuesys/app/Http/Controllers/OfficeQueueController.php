@@ -252,7 +252,8 @@ class OfficeQueueController extends Controller
         $newOffice = Office::findOrFail($request->new_office_id);
 
         $nextQueue = (Visitor::where('office_id', $newOffice->id)
-            ->max(DB::raw('CAST(SUBSTR(ticket_number, 4) AS INTEGER)')) ?? 0) + 1;
+                ->whereDate('created_at', today())
+                ->max(DB::raw('CAST(SUBSTR(ticket_number, 4) AS INTEGER)'))?? 0) + 1;
 
         $prefix = $newOffice->abbreviation;
         $nextTicket = sprintf("%s-%03d", $prefix, $nextQueue);

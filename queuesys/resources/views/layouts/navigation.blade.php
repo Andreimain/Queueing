@@ -23,28 +23,37 @@
                     @if(Auth::user()->isAdmin())
                         <!-- Admin: Dropdown with all offices -->
                         <div x-data="{ show: false }" class="relative group" @mouseenter="show = true" @mouseleave="show = false">
-                            <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none transition">
+                            <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-emerald-700 focus:outline-none transition">
                                 Queues
                                 <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </button>
 
-                            <div x-show="show" x-cloak x-transition
-                                class="absolute mt-2 w-48 bg-white shadow-lg rounded-md z-50 border border-gray-200">
-                                @foreach(\App\Models\Office::all() as $office)
-                                    <a href="{{ route('office.queue', $office->id) }}"
-                                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                       {{ $office->name }}
-                                    </a>
-                                @endforeach
+                            <div x-show="show" x-cloak x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                class="absolute mt-2 w-56 bg-white/90 backdrop-blur-md shadow-xl rounded-xl z-50 border border-emerald-100 overflow-hidden">
+                                <div class="py-1">
+                                    @foreach($offices as $office)
+                                        <a href="{{ route('office.queue', $office->id) }}"
+                                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
+                                           {{ $office->name }}
+                                        </a>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     @else
                         <!-- Staff: Direct link to their assigned office -->
-                        <x-nav-link :href="route('office.queue', Auth::user()->office_id)">
-                            Queues
-                        </x-nav-link>
+                        @if(Auth::user()->office_id)
+                            <x-nav-link :href="route('office.queue', Auth::user()->office_id)">
+                                Queues
+                            </x-nav-link>
+                        @endif
                     @endif
 
                     <!-- View Skipped -->
