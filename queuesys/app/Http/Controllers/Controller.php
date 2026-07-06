@@ -31,10 +31,9 @@ class Controller extends BaseController
         return view('monitor.show', compact('office', 'cashiers', 'servingVisitors', 'upcomingQueues'));
     }
 
-    public function monitorData($officeId)
+    protected function buildMonitorPayload(Office $office): array
     {
-        $today  = Carbon::today();
-        $office = Office::findOrFail($officeId);
+        $today = Carbon::today();
 
         $cashiers = $office->staff()->get();
 
@@ -47,29 +46,29 @@ class Controller extends BaseController
         $upcomingQueues = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'waiting')
-            ->orderBy('queue_number', 'asc')
+            ->orderBy('queue_number')
             ->take(15)
             ->get();
 
-        return response()->json([
-            'cashiers' => $cashiers->map(function ($c) use ($servingVisitors) {
+        return [
+            'serving' => $cashiers->mapWithKeys(function ($cashier) use ($servingVisitors) {
+                if (!$servingVisitors->has($cashier->id)) {
+                    return [$cashier->id => null];
+                }
+
+                $v = $servingVisitors[$cashier->id];
+
                 return [
-                    'id'      => $c->id,
-                    'name'    => $c->name,
-                    'serving' => $servingVisitors->has($c->id)
-                        ? [
-                            'ticket_number' => $servingVisitors[$c->id]->ticket_number,
-                            'queue_number' => $servingVisitors[$c->id]->queue_number,
-                        ]
-                        : null,
+                    $cashier->id => [
+                        'ticket' => $v->ticket_number,
+                        'queue'  => $v->queue_number,
+                    ],
                 ];
-            }),
-            'upcomingQueues' => $upcomingQueues->map(function ($v) {
-                return [
-                    'ticket_number' => $v->ticket_number,
-                    'queue_number' => $v->queue_number,
-                ];
-            }),
-        ]);
+            })->toArray(),
+
+            'upcoming' => $upcomingQueues
+                ->pluck('ticket_number')
+                ->toArray(),
+        ];
     }
 }

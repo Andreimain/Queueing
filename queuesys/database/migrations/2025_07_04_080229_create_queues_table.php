@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('queues', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->nullable(); // Optional: associate with user
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->string('name');
             $table->integer('number')->unique();
             $table->enum('status', ['waiting', 'serving', 'done', 'skipped'])->default('waiting');

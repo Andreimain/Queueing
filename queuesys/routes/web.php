@@ -44,6 +44,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     //Transfer Visitor
     Route::post('/queue/transfer/{visitor}', [OfficeQueueController::class, 'transfer'])->name('office.queue.transfer');
+    Route::get('/queue/history', [OfficeQueueController::class, 'history'])->name('queue.history');
+    Route::get('/statistics', [OfficeQueueController::class, 'statistics'])->name('queue.statistics');
 
     // Staff Management
     Route::prefix('staff')->group(function () {
@@ -57,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/offices/create', [OfficeController::class, 'create'])->name('offices.create');
         Route::post('/offices', [OfficeController::class, 'store'])->name('offices.store');
+        Route::put('/offices/{office}', [OfficeController::class, 'update'])->name('offices.update');
     });
 });
 

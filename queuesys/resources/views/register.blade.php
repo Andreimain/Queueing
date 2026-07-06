@@ -22,16 +22,9 @@
             @csrf
 
             <div>
-                <label class="block text-sm font-semibold text-emerald-800">First Name</label>
-                <input type="text" name="first_name" required
-                       value="{{ old('first_name') }}"
-                       class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition">
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-emerald-800">Last Name</label>
-                <input type="text" name="last_name" required
-                       value="{{ old('last_name') }}"
+                <label class="block text-sm font-semibold text-emerald-800">Full Name</label>
+                <input type="text" name="name" required
+                       value="{{ old('name') }}"
                        class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition">
             </div>
 

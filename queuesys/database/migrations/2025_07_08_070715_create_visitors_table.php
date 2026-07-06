@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('visitors', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name');
-            $table->string('last_name');
+            $table->string('name');
             $table->string('contact_number');
             $table->string('id_number')->nullable();
             $table->unsignedBigInteger('office_id');

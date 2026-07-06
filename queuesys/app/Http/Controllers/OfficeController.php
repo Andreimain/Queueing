@@ -28,4 +28,20 @@ class OfficeController extends Controller
 
         return redirect()->back()->with('success', 'Office created successfully!');
     }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required',
+            'abbreviation' => 'required'
+        ]);
+
+        $office = Office::findOrFail($id);
+        $office->update([
+            'name' => $request->name,
+            'abbreviation' => $request->abbreviation
+        ]);
+
+        return redirect()->back()->with('success', 'Office updated successfully');
+    }
 }

@@ -30,8 +30,7 @@
                                     <th class="px-4 py-2 border border-emerald-700 text-center">
                                         <input type="checkbox" id="select-all" class="cursor-pointer">
                                     </th>
-                                    <th class="px-4 py-2 border border-emerald-700 text-left">First Name</th>
-                                    <th class="px-4 py-2 border border-emerald-700 text-left">Last Name</th>
+                                    <th class="px-4 py-2 border border-emerald-700 text-left">Full Name</th>
                                     <th class="px-4 py-2 border border-emerald-700 text-left">Office</th>
                                     <th class="px-4 py-2 border border-emerald-700 text-left">Skipped At</th>
                                 </tr>
@@ -42,8 +41,7 @@
                                         <td class="px-4 py-2 border border-emerald-300 text-center">
                                             <input type="checkbox" name="selected[]" value="{{ $visitor->id }}" class="row-checkbox cursor-pointer">
                                         </td>
-                                        <td class="px-4 py-2 border border-emerald-300">{{ $visitor->first_name }}</td>
-                                        <td class="px-4 py-2 border border-emerald-300">{{ $visitor->last_name }}</td>
+                                        <td class="px-4 py-2 border border-emerald-300">{{ $visitor->name }}</td>
                                         <td class="px-4 py-2 border border-emerald-300">{{ $visitor->office->name }}</td>
                                         <td class="px-4 py-2 border border-emerald-300">
                                             {{ $visitor->updated_at->timezone('Asia/Manila')->format('h:i A') }}

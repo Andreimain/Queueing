@@ -9,6 +9,13 @@
             <p class="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto">
                 Select an office below to view the live queue status.
             </p>
+            <div class="pt-2">
+                <a href="{{ route('login') }}"
+                   class="inline-flex items-center text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">
+                    Click here to login!
+                    <span class="ml-1">&rarr;</span>
+                </a>
+            </div>
         </div>
 
         <!-- Office Grid -->

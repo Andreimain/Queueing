@@ -43,7 +43,7 @@
                                     #{{ $visitor->queue_number }}
                                 </div>
                                 <div class="text-lg mt-2 font-semibold">
-                                    {{ $visitor->first_name }} {{ $visitor->last_name }} - {{ $visitor->ticket_number }}
+                                    {{ $visitor->name }} - {{ $visitor->ticket_number }}
                                 </div>
                                 <div class="text-sm text-gray-600 mt-1">
                                     Cashier: {{ $visitor->cashier->name ?? 'Unassigned' }}
@@ -130,7 +130,7 @@
                                                 <span
                                                     class="font-semibold {{ $visitor->priority ? 'text-red-600' : 'text-emerald-700' }}">#{{ $visitor->queue_number }}
                                                 </span> —
-                                                {{ $visitor->first_name }} {{ $visitor->last_name }} -
+                                                {{ $visitor->name }} -
                                                 {{ $visitor->ticket_number }}
                                             </div>
                                         </li>
@@ -161,6 +161,7 @@
             <p class="mt-4 text-gray-700">Their new ticket is:</p>
             <h2 class="text-3xl font-bold text-gray-900" id="newTicketNumber"></h2>
             <p class="mt-4 text-gray-700">Your visitor has been transferred successfully.</p>
+            <p class="mt-4 text-gray-700">Important Note: Please let the Visitor know their new Ticket!</p>
             <button id="closeModalBtn"
                 class="mt-6 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">Close</button>
         </div>
