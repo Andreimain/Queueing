@@ -1,4 +1,7 @@
 <x-guest-layout>
+    <x-slot name="title">
+        Monitoring
+    </x-slot>
     <div class="w-full max-w-7xl mx-auto p-4 sm:p-6">
 
         <!-- Title -->

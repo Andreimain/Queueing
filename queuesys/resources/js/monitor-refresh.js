@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Keep track of the last ticket announced for each cashier
+    const lastAnnouncedTickets = {};
+
     window.Echo
         .channel(`queues.office.${window.officeId}`)
         .listen('.queue.updated', (e) => {
@@ -33,6 +36,25 @@ document.addEventListener('DOMContentLoaded', () => {
                             #${serving.queue}
                         </div>
                     `;
+
+                    // Announce only if this is a new ticket
+                    if (lastAnnouncedTickets[cashierId] !== serving.ticket) {
+                        lastAnnouncedTickets[cashierId] = serving.ticket;
+
+                        const cashierName =
+                            container.querySelector('h2')?.textContent.trim() || 'cashier';
+
+                        const announcement = new SpeechSynthesisUtterance(
+                            `Now serving ${serving.ticket}. Please proceed to ${cashierName}.`
+                        );
+
+                        announcement.rate = 0.9;
+                        announcement.pitch = 1;
+
+                        speechSynthesis.cancel();
+                        speechSynthesis.speak(announcement);
+                    }
+
                 } else {
                     servingDiv.innerHTML =
                         `<div class="text-2xl sm:text-3xl text-gray-400">Idle</div>`;
@@ -41,11 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Update upcoming queues
             const upcoming = document.getElementById('upcoming-queues');
+
             if (!upcoming) return;
 
-            const upcomingList = Array.isArray(payload.upcoming) ? payload.upcoming : [];
+            const upcomingList = Array.isArray(payload.upcoming)
+                ? payload.upcoming
+                : [];
+
             if (!upcomingList.length) {
-                upcoming.innerHTML = `<li class="text-gray-500">No upcoming queues</li>`;
+                upcoming.innerHTML =
+                    `<li class="text-gray-500">No upcoming queues</li>`;
                 return;
             }
 
@@ -54,5 +81,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     `<li class="text-2xl sm:text-3xl text-gray-800">${ticket}</li>`
                 )
                 .join('');
+        })
+
+        .listen('.queue.announce', (e) => {
+            if (!e.ticket) {
+                console.warn('No ticket received for announcement.');
+                return;
+            }
+
+            const announcement = new SpeechSynthesisUtterance(
+                `Now serving ${e.ticket}. Please proceed to ${e.cashier || 'the cashier'}.`
+            );
+
+            announcement.rate = 0.9;
+            announcement.pitch = 1;
+
+            speechSynthesis.cancel();
+            speechSynthesis.speak(announcement);
         });
 });

@@ -37,5 +37,8 @@ class Office extends Model
     {
         return $this->hasMany(User::class)->where('role', 'staff');
     }
-
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
 }

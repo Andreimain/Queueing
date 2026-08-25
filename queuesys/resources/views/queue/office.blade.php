@@ -1,4 +1,7 @@
 <x-app-layout>
+    <x-slot name="title">
+        Queues
+    </x-slot>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ $office->name }} Queue Management
@@ -54,19 +57,42 @@
                                     <form method="POST" action="{{ route('office.queue.transfer', $visitor->id) }}"
                                         class="mt-3 transfer-form">
                                         @csrf
-                                        <select name="new_office_id" required
-                                            class="w-full p-2 border border-gray-300 rounded-md bg-white">
-                                            <option value="" disabled selected>-- Transfer to Office --</option>
+
+                                        {{-- Office --}}
+                                        <select name="new_office_id"
+                                            class="w-full p-2 border border-gray-300 rounded-md bg-white transfer-office"
+                                            data-visitor-id="{{ $visitor->id }}" required>
+                                            <option value="" disabled selected>
+                                                -- Transfer to Office --
+                                            </option>
+
+                                            {{-- Current office --}}
+                                            <option value="{{ $office->id }}">
+                                                {{ $office->name }}
+                                            </option>
+
+                                            {{-- Other offices --}}
                                             @foreach ($allOffices as $targetOffice)
                                                 @if ($targetOffice->id !== $office->id)
-                                                    <option value="{{ $targetOffice->id }}">{{ $targetOffice->name }}
+                                                    <option value="{{ $targetOffice->id }}">
+                                                        {{ $targetOffice->name }}
                                                     </option>
                                                 @endif
                                             @endforeach
                                         </select>
+
+                                        {{-- Staff --}}
+                                        <select name="new_cashier_id"
+                                            class="w-full p-2 border border-gray-300 rounded-md bg-white mt-2 transfer-staff"
+                                            data-visitor-id="{{ $visitor->id }}" disabled>
+                                            <option value="" disabled selected>
+                                                -- Transfer to Staff --
+                                            </option>
+                                        </select>
+
                                         <button type="submit"
                                             class="mt-2 w-full py-2 px-4 rounded shadow font-semibold text-white bg-indigo-600 hover:bg-indigo-700">
-                                            Transfer Visitor
+                                            Transfer
                                         </button>
                                     </form>
                                 @endif
@@ -110,7 +136,20 @@
                                 </button>
                             </form>
                         @endif
+
+                        {{-- Call Again --}}
+                        @if ($serving->contains('cashier_id', auth()->id()))
+                            <form method="POST" action="{{ route('office.queue.call-again', $office->id) }}">
+                                @csrf
+                                <button type="submit"
+                                    class="py-2 px-6 rounded shadow font-semibold text-white bg-blue-600 hover:bg-blue-700">
+                                    Call Again
+                                </button>
+                            </form>
+                        @endif
                     </div>
+
+
 
                     {{-- Waiting List --}}
                     <div>
@@ -166,6 +205,24 @@
                 class="mt-6 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">Close</button>
         </div>
     </div>
+
+    <script>
+        window.currentOfficeId = {{ $office->id }};
+        window.currentUserId = {{ auth()->id() }};
+
+        window.transferStaff = @json(
+            $allOffices->mapWithKeys(function ($office) {
+                return [
+                    $office->id => $office->users->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                        ];
+                    })->values()
+                ];
+            })
+        );
+    </script>
 
     @vite('resources/js/queue-refresh.js')
     @vite('resources/js/transfer-modal.js')

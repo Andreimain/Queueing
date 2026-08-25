@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Visitor;
 use App\Models\Office;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -45,7 +46,7 @@ class OfficeQueueController extends Controller
             ->orderBy('updated_at')
             ->get();
 
-        $allOffices = Office::all();
+        $allOffices = Office::with('users')->get();
 
         return view('queue.office', compact('office', 'serving', 'waiting', 'allOffices'));
     }
@@ -259,53 +260,127 @@ class OfficeQueueController extends Controller
     {
         $request->validate([
             'new_office_id' => 'required|exists:offices,id',
+            'new_cashier_id' => 'nullable|exists:users,id',
         ]);
 
-        $old = Visitor::findOrFail($id);
+        $visitor = Visitor::findOrFail($id);
 
-        if ($old->status !== 'serving' || $old->cashier_id !== auth()->id()) {
-            return back()->with('error', 'You can only transfer a visitor you are currently serving.');
+        // Only the staff currently serving the visitor can transfer them
+        if (
+            $visitor->status !== 'serving' ||
+            $visitor->cashier_id !== auth()->id()
+        ) {
+            return back()->with(
+                'error',
+                'You can only transfer a visitor you are currently serving.'
+            );
         }
 
-        $old->status = 'transferred';
-        $old->save();
+        $currentOffice = Office::findOrFail($visitor->office_id);
+        $targetOffice = Office::findOrFail($request->new_office_id);
 
-        $this->broadcastMonitorUpdate($old->office_id);
-        $newOffice = Office::findOrFail($request->new_office_id);
+        if ($targetOffice->id === $currentOffice->id) {
 
-        $nextQueue = (Visitor::where('office_id', $newOffice->id)
-            ->whereDate('created_at', today())
-            ->max(DB::raw('CAST(SUBSTR(ticket_number, 4) AS INTEGER)')) ?? 0) + 1;
+            if (!$request->new_cashier_id) {
+                return back()->with(
+                    'error',
+                    'Please select the staff member you want to transfer to.'
+                );
+            }
 
-        $prefix = $newOffice->abbreviation;
-        $nextTicket = sprintf("%s-%03d", $prefix, $nextQueue);
+            $newStaff = User::where('id', $request->new_cashier_id)
+                ->where('office_id', $currentOffice->id)
+                ->first();
 
+            if (!$newStaff) {
+                return back()->with(
+                    'error',
+                    'Invalid staff member selected.'
+                );
+            }
 
-        $new = Visitor::create([
-            'name'                => $old->name,
-            'contact_number'      => $old->contact_number,
-            'id_number'           => $old->id_number,
+            // Don't allow transferring to yourself
+            if ($newStaff->id === auth()->id()) {
+                return back()->with(
+                    'error',
+                    'You cannot transfer the visitor to yourself.'
+                );
+            }
 
-            'office_id'           => $newOffice->id,
-            'previous_office_id'  => $old->office_id,
+            // Make sure the receiving staff isn't already serving someone
+            $alreadyServing = Visitor::where('office_id', $currentOffice->id)
+                ->whereDate('created_at', today())
+                ->where('status', 'serving')
+                ->where('cashier_id', $newStaff->id)
+                ->exists();
 
-            'queue_number'        => $nextQueue,
-            'ticket_number'       => $nextTicket,
+            if ($alreadyServing) {
+                return back()->with(
+                    'error',
+                    "{$newStaff->name} is already serving another visitor."
+                );
+            }
 
-            'status'              => 'waiting',
-            'priority'            => $old->priority,
+            $visitor->update([
+                'cashier_id' => $newStaff->id,
+            ]);
+
+            // Update monitoring page
+            $this->broadcastMonitorUpdate($currentOffice->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Visitor transferred to {$newStaff->name}.",
+            ]);
+        }
+
+        $visitor->status = 'transferred';
+        $visitor->save();
+
+        // Remove visitor from current office monitor
+        $this->broadcastMonitorUpdate($currentOffice->id);
+
+        // Generate new queue number for target office
+        $nextQueue = (
+            Visitor::where('office_id', $targetOffice->id)
+                ->whereDate('created_at', today())
+                ->max(DB::raw('CAST(SUBSTR(ticket_number, 4) AS INTEGER)'))
+            ?? 0
+        ) + 1;
+
+        $prefix = $targetOffice->abbreviation;
+        $newTicket = sprintf('%s-%03d', $prefix, $nextQueue);
+
+        // Create new visitor for target office
+        $newVisitor = Visitor::create([
+            'name' => $visitor->name,
+            'contact_number' => $visitor->contact_number,
+            'id_number' => $visitor->id_number,
+
+            'office_id' => $targetOffice->id,
+            'previous_office_id' => $currentOffice->id,
+
+            'queue_number' => $nextQueue,
+            'ticket_number' => $newTicket,
+
+            'status' => 'waiting',
+            'priority' => $visitor->priority,
         ]);
 
-        $this->broadcastMonitorUpdate($newOffice->id);
+        // Update target office monitor
+        $this->broadcastMonitorUpdate($targetOffice->id);
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'new_ticket' => $nextTicket,
+                'new_ticket' => $newTicket,
             ]);
         }
 
-        return back()->with('success', 'Visitor transferred successfully.');
+        return back()->with(
+            'success',
+            "Visitor transferred to {$targetOffice->name}. New ticket: {$newTicket}"
+        );
     }
 
 
@@ -510,6 +585,39 @@ class OfficeQueueController extends Controller
         }
 
         abort(403);
+    }
+
+    public function callAgain($officeId)
+    {
+        $office = $this->authorizeOffice($officeId);
+        $today = now()->toDateString();
+        $cashierId = Auth::id();
+
+        $serving = Visitor::where('office_id', $office->id)
+            ->whereDate('created_at', $today)
+            ->where('status', 'serving')
+            ->where('cashier_id', $cashierId)
+            ->first();
+
+        if (!$serving) {
+            return back()->with(
+                'error',
+                'You are not currently serving any visitor.'
+            );
+        }
+
+        $serving->load('cashier');
+
+        broadcast(new \App\Events\QueueAnnounce(
+            $office->id,
+            $serving->ticket_number,
+            $serving->cashier->name ?? 'Cashier'
+        ));
+
+        return back()->with(
+            'success',
+            "Ticket {$serving->ticket_number} announced again."
+        );
     }
 
     private function broadcastMonitorUpdate(int $officeId)

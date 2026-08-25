@@ -1,4 +1,7 @@
 <x-guest-layout>
+    <x-slot name="title">
+        Registration
+    </x-slot>
     <div class="w-full max-w-md bg-white/80 backdrop-blur-sm border border-emerald-200 p-8 rounded-2xl shadow-lg">
         <h1 class="text-3xl font-bold text-center text-emerald-800 mb-8">Registration</h1>
 

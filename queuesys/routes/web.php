@@ -68,6 +68,7 @@ Route::prefix('office')->middleware('auth')->group(function () {
     Route::post('{office}/next', [OfficeQueueController::class, 'next'])->name('office.queue.next');
     Route::post('{office}/done', [OfficeQueueController::class, 'markDone'])->name('office.queue.done');
     Route::post('{office}/skip', [OfficeQueueController::class, 'markSkip'])->name('office.queue.skip');
+    Route::post('{office}/queue/call-again',[OfficeQueueController::class, 'callAgain'])->name('office.queue.call-again');
 });
 
 require __DIR__ . '/auth.php';
