@@ -1,5 +1,18 @@
 import Echo from 'laravel-echo';
 
+function formatTicketForSpeech(ticket) {
+    return ticket
+        .split('')
+        .map(char => {
+            if (char === '-') {
+                return 'dash';
+            }
+
+            return char;
+        })
+        .join(' ');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.officeId === 'undefined') {
         console.error('officeId not found');
@@ -32,9 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="text-3xl sm:text-4xl font-bold text-emerald-600">
                             ${serving.ticket}
                         </div>
-                        <div class="text-gray-700 mt-1 text-lg">
-                            #${serving.queue}
-                        </div>
                     `;
 
                     // Announce only if this is a new ticket
@@ -44,8 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         const cashierName =
                             container.querySelector('h2')?.textContent.trim() || 'cashier';
 
+                        const spokenTicket =
+                            formatTicketForSpeech(serving.ticket);
+
                         const announcement = new SpeechSynthesisUtterance(
-                            `Now serving ${serving.ticket}. Please proceed to ${cashierName}.`
+                            `Now serving ${spokenTicket}. Please proceed to ${cashierName}.`
                         );
 
                         announcement.rate = 0.9;
@@ -89,8 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const spokenTicket =
+                formatTicketForSpeech(e.ticket);
+
             const announcement = new SpeechSynthesisUtterance(
-                `Now serving ${e.ticket}. Please proceed to ${e.cashier || 'the cashier'}.`
+                `Now serving ${spokenTicket}. Please proceed to ${e.cashier || 'the cashier'}.`
             );
 
             announcement.rate = 0.9;

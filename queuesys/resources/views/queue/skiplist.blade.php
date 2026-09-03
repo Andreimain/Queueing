@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="title">
-        Skipped List
+        Skipped
     </x-slot>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -17,11 +17,9 @@
                     <!-- Top controls (search bar on the right) -->
                     <div class="flex justify-end mb-4">
                         <form method="GET" action="{{ route('skipped.list') }}" id="searchForm" class="w-1/3">
-                            <input type="text" name="q" id="searchInput"
-                                   value="{{ request('q') }}"
-                                   placeholder="Search visitor..."
-                                   autocomplete="off"
-                                   class="border border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500 rounded-md w-full px-3 py-2">
+                            <input type="text" name="q" id="searchInput" value="{{ request('q') }}"
+                                placeholder="Search visitor..." autocomplete="off"
+                                class="border border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500 rounded-md w-full px-3 py-2">
                         </form>
                     </div>
 
@@ -33,6 +31,7 @@
                                     <th class="px-4 py-2 border border-emerald-700 text-center">
                                         <input type="checkbox" id="select-all" class="cursor-pointer">
                                     </th>
+                                    <th class="px-4 py-2 border border-emerald-700 text-left">Ticket</th>
                                     <th class="px-4 py-2 border border-emerald-700 text-left">Full Name</th>
                                     <th class="px-4 py-2 border border-emerald-700 text-left">Office</th>
                                     <th class="px-4 py-2 border border-emerald-700 text-left">Skipped At</th>
@@ -42,10 +41,14 @@
                                 @forelse($skipped as $visitor)
                                     <tr class="hover:bg-emerald-50">
                                         <td class="px-4 py-2 border border-emerald-300 text-center">
-                                            <input type="checkbox" name="selected[]" value="{{ $visitor->id }}" class="row-checkbox cursor-pointer">
+                                            <input type="checkbox" name="selected[]" value="{{ $visitor->id }}"
+                                                class="row-checkbox cursor-pointer">
                                         </td>
+                                        <td class="px-4 py-2 border border-emerald-300 font-semibold text-emerald-700">
+                                            {{ $visitor->ticket_number }}</td>
                                         <td class="px-4 py-2 border border-emerald-300">{{ $visitor->name }}</td>
-                                        <td class="px-4 py-2 border border-emerald-300">{{ $visitor->office->name }}</td>
+                                        <td class="px-4 py-2 border border-emerald-300">{{ $visitor->office->name }}
+                                        </td>
                                         <td class="px-4 py-2 border border-emerald-300">
                                             {{ $visitor->updated_at->timezone('Asia/Manila')->format('h:i A') }}
                                         </td>
@@ -61,15 +64,24 @@
                         </table>
                     </div>
 
-                    <!-- Restore Selected button -->
-                    <div class="mt-4 text-center">
+                    <!-- Queue Actions -->
+                    <div class="mt-4 text-center space-x-2">
+
+                        {{-- Restore --}}
                         <form method="POST" action="{{ route('skipped.restore') }}" id="restoreForm" class="inline-block">
                             @csrf
                             <input type="hidden" name="selected_ids" id="selectedIds">
-
-                            <button type="submit"
-                                class="py-2 px-4 rounded shadow font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition">
+                            <button type="submit" id="restoreButton" disabled class="py-2 px-4 rounded shadow font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
                                 Restore Selected
+                            </button>
+                        </form>
+
+                        {{-- Swap --}}
+                        <form method="POST" action="{{ route('skipped.swap') }}" id="swapForm" class="inline-block">
+                            @csrf
+                            <input type="hidden" name="selected_id" id="swapSelectedId">
+                            <button type="submit" id="swapButton" disabled class="py-2 px-4 rounded shadow font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                                Swap Selected
                             </button>
                         </form>
                     </div>

@@ -13,6 +13,8 @@ class Visitor extends Model
         'name',
         'contact_number',
         'id_number',
+        'type',
+        'course_id',
         'office_id',
         'previous_office_id',
         'queue_number',
@@ -31,8 +33,25 @@ class Visitor extends Model
         return $this->belongsTo(Office::class);
     }
 
-    public function cashier() {
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function cashier()
+    {
         return $this->belongsTo(User::class, 'cashier_id');
     }
 
+    public function previousOffice()
+    {
+        return $this->belongsTo(Office::class, 'previous_office_id');
+    }
+
+    public function transfers()
+    {
+        return $this->hasMany(VisitorTransfer::class)
+            ->with(['fromOffice', 'toOffice', 'transferredBy'])
+            ->orderBy('transferred_at');
+    }
 }

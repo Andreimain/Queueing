@@ -20,7 +20,8 @@ return new class extends Migration
             $table->unsignedBigInteger('previous_office_id')->nullable();
             $table->integer('queue_number');
             $table->integer('ticket_number');
-            $table->enum('type', ['student', 'visitor'])->nullable();
+            $table->enum('type', ['student', 'visitor'])->default('visitor');
+            $table->foreignId('course_id')->nullable()->constrained('courses')->nullOnDelete();
             $table->unsignedBigInteger('cashier_id')->nullable();
 
             $table->foreign('office_id')

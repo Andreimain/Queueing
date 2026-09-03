@@ -23,9 +23,6 @@
                                 <div class="text-3xl sm:text-4xl font-bold text-emerald-600 break-words">
                                     {{ $servingVisitors[$cashier->id]->ticket_number }}
                                 </div>
-                                <div class="text-gray-700 mt-1 text-lg">
-                                    #{{ $servingVisitors[$cashier->id]->queue_number }}
-                                </div>
                             @else
                                 <div class="text-2xl sm:text-3xl text-gray-400">Idle</div>
                             @endif

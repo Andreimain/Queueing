@@ -14,7 +14,7 @@
         @endif
 
         {{-- Success Message --}}
-        @if(session('success'))
+        @if (session('success'))
             <div class="mb-4 p-3 bg-green-100 text-green-700 rounded text-sm">
                 {{ session('success') }}
             </div>
@@ -27,16 +27,14 @@
             <!-- Name -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Name</label>
-                <input type="text" name="name" required
-                    value="{{ old('name', $staff->name) }}"
+                <input type="text" name="name" required value="{{ old('name', $staff->name) }}"
                     class="mt-1 w-full p-2 border border-gray-300 rounded-md">
             </div>
 
             <!-- Email -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" name="email" required
-                    value="{{ old('email', $staff->email) }}"
+                <input type="email" name="email" required value="{{ old('email', $staff->email) }}"
                     class="mt-1 w-full p-2 border border-gray-300 rounded-md">
             </div>
 
@@ -45,15 +43,13 @@
                 <label class="block text-sm font-medium text-gray-700">
                     Password <span class="text-gray-500 text-xs">(leave blank to keep current)</span>
                 </label>
-                <input type="password" name="password"
-                    class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                <input type="password" name="password" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
             </div>
 
             <!-- Role -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Role</label>
-                <select name="role" required
-                    class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                <select name="role" required class="mt-1 w-full p-2 border border-gray-300 rounded-md">
                     <option value="staff" {{ $staff->role === 'staff' ? 'selected' : '' }}>Staff</option>
                     <option value="admin" {{ $staff->role === 'admin' ? 'selected' : '' }}>Admin</option>
                 </select>
@@ -63,22 +59,48 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700">Office</label>
 
-                @if($staff->role === 'admin')
+                @if ($staff->role === 'admin')
                     <input type="text" value="N/A" disabled
                         class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
                     <input type="hidden" name="office_id" value="{{ $staff->office_id }}">
                 @else
-                    <select name="office_id" required
-                        class="mt-1 w-full p-2 border border-gray-300 rounded-md">
-                        <option value="" disabled>-- Select Office --</option>
-                        @foreach($offices as $office)
-                            <option value="{{ $office->id }}"
+                    <select name="office_id" id="officeSelect" required
+                        class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="" disabled selected>-- Select Office --</option>
+
+                        @foreach ($offices as $office)
+                            <option value="{{ $office->id }}" data-abbreviation="{{ $office->abbreviation }}"
                                 {{ $staff->office_id == $office->id ? 'selected' : '' }}>
                                 {{ $office->name }}
                             </option>
                         @endforeach
                     </select>
                 @endif
+            </div>
+
+            <!-- Registrar Course Assignment -->
+            <div id="courseAssignment" class="hidden">
+                <label class="block text-sm font-medium text-green-700 mb-2">
+                    Assign Courses
+                </label>
+
+                <div class="border border-green-300 rounded p-3 bg-white max-h-48 overflow-y-auto space-y-2">
+                    @foreach ($courses as $course)
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="courses[]" value="{{ $course->id }}"
+                                {{ $staff->courses->contains($course->id) ? 'checked' : '' }}
+                                class="rounded border-green-400 text-green-600 focus:ring-green-500">
+
+                            <span class="text-sm text-gray-700">
+                                {{ $course->name }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+
+                <p class="text-xs text-gray-500 mt-1">
+                    Select all courses this Registrar staff member can handle.
+                </p>
             </div>
 
             <!-- Submit -->
@@ -88,4 +110,5 @@
             </button>
         </form>
     </div>
+    @vite('resources/js/staff-management.js')
 </x-guest-layout>

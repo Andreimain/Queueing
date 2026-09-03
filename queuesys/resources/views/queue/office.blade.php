@@ -197,10 +197,8 @@
 
     <div id="transferModal" class="fixed inset-0 items-center justify-center bg-black bg-opacity-50 z-50 hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md text-center mx-auto">
-            <p class="mt-4 text-gray-700">Their new ticket is:</p>
-            <h2 class="text-3xl font-bold text-gray-900" id="newTicketNumber"></h2>
             <p class="mt-4 text-gray-700">Your visitor has been transferred successfully.</p>
-            <p class="mt-4 text-gray-700">Important Note: Please let the Visitor know their new Ticket!</p>
+            <p class="mt-4 text-gray-700">Important Note: Please let the Visitor know they are queued with the same Ticket!</p>
             <button id="closeModalBtn"
                 class="mt-6 bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700">Close</button>
         </div>

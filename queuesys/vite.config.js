@@ -13,6 +13,7 @@ export default defineConfig({
                     'resources/js/queue-refresh.js',
                     'resources/js/register-form.js',
                     'resources/js/skipped.js',
+                    'resources/js/staff-management.js',
                     'resources/js/statistics.js',
                     'resources/js/transfer-modal.js'],
             refresh: true,

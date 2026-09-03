@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Visitor;
 use App\Models\Office;
 use App\Models\User;
+use App\Models\VisitorTransfer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -31,24 +32,51 @@ class OfficeQueueController extends Controller
     {
         $office = $this->authorizeOffice($officeId);
         $today = now()->toDateString();
+        $user = Auth::user();
 
-        // All visitors currently being served (by any cashier)
+        // All visitors currently being served
         $serving = Visitor::with('cashier')
             ->where('office_id', $office->id)
             ->whereDate('created_at', $today)
             ->where('status', 'serving')
             ->get();
 
-        // Waiting visitors in FIFO order
-        $waiting = Visitor::where('office_id', $office->id)
+        // Waiting visitors
+        $waitingQuery = Visitor::where('office_id', $office->id)
             ->whereDate('created_at', $today)
-            ->where('status', 'waiting')
-            ->orderBy('updated_at')
+            ->where('status', 'waiting');
+
+        if (
+            $user &&
+            $user->isStaff() &&
+            $office->abbreviation === 'RO'
+        ) {
+            $assignedCourseIds = $user->courses()
+                ->pluck('courses.id');
+
+            $waitingQuery->where(function ($query) use ($assignedCourseIds) {
+                $query->where('type', 'visitor')
+                    ->orWhere(function ($studentQuery) use ($assignedCourseIds) {
+                        $studentQuery
+                            ->where('type', 'student')
+                            ->whereIn('course_id', $assignedCourseIds);
+                    });
+            });
+        }
+
+        $waiting = $waitingQuery
+            ->orderByDesc('priority')
+            ->orderBy('queue_number')
             ->get();
 
         $allOffices = Office::with('users')->get();
 
-        return view('queue.office', compact('office', 'serving', 'waiting', 'allOffices'));
+        return view('queue.office', compact(
+            'office',
+            'serving',
+            'waiting',
+            'allOffices'
+        ));
     }
 
     // Assign the next waiting visitor to the logged-in cashier
@@ -58,6 +86,7 @@ class OfficeQueueController extends Controller
             $office = $this->authorizeOffice($officeId);
             $today = now()->toDateString();
             $cashierId = Auth::id();
+            $user = Auth::user();
 
             // Check if this cashier is already serving someone
             $alreadyServing = Visitor::where('office_id', $office->id)
@@ -73,16 +102,46 @@ class OfficeQueueController extends Controller
                 ];
             }
 
-            // Get the next visitor, priority first
-            $next = Visitor::where('office_id', $office->id)
+            // Get waiting visitors
+            $nextQuery = Visitor::where('office_id', $office->id)
                 ->whereDate('created_at', $today)
-                ->where('status', 'waiting')
+                ->where('status', 'waiting');
+
+            /*
+             * Registrar filtering:
+             * - Visitors can be served by any Registrar staff.
+             * - Students can only be served if their course
+             *   is assigned to the logged-in Registrar staff.
+             */
+            if (
+                $user &&
+                $user->isStaff() &&
+                $office->abbreviation === 'RO'
+            ) {
+                $assignedCourseIds = $user->courses()
+                    ->pluck('courses.id');
+
+                $nextQuery->where(function ($query) use ($assignedCourseIds) {
+                    $query->where('type', 'visitor')
+                        ->orWhere(function ($studentQuery) use ($assignedCourseIds) {
+                            $studentQuery
+                                ->where('type', 'student')
+                                ->whereIn('course_id', $assignedCourseIds);
+                        });
+                });
+            }
+
+            // Priority first, then FIFO
+            $next = $nextQuery
                 ->orderByDesc('priority')
-                ->orderBy('updated_at')
+                ->orderBy('queue_number')
                 ->first();
 
             if (!$next) {
-                return ['status' => 'empty', 'message' => 'No visitors left to serve.'];
+                return [
+                    'status' => 'empty',
+                    'message' => 'No visitors left to serve.'
+                ];
             }
 
             // Serve the visitor
@@ -92,6 +151,7 @@ class OfficeQueueController extends Controller
             ]);
 
             $this->broadcastMonitorUpdate($office->id);
+
             $next->load('cashier');
 
             return [
@@ -211,8 +271,7 @@ class OfficeQueueController extends Controller
         if ($request->filled('q')) {
             $search = $request->q;
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
                     ->orWhereHas('office', fn ($oq) => $oq->where('name', 'like', "%{$search}%"));
             });
         }
@@ -244,7 +303,6 @@ class OfficeQueueController extends Controller
         foreach ($visitors as $visitor) {
             $visitor->update([
                 'status' => 'waiting',
-                'updated_at' => now(),
             ]);
         }
 
@@ -256,6 +314,67 @@ class OfficeQueueController extends Controller
         return back()->with('success', 'Selected visitors restored to the end of the queue.');
     }
 
+    public function swapSkipped(Request $request)
+    {
+        $request->validate([
+            'selected_id' => 'required|integer|exists:visitors,id',
+        ]);
+
+        $result = DB::transaction(function () use ($request) {
+
+            $user = Auth::user();
+            $today = now()->toDateString();
+
+            $skipped = Visitor::where('id', $request->selected_id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'skipped')
+                ->where('office_id', $user->office_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$skipped) {
+                return [
+                    'status' => 'error',
+                    'message' => 'The selected visitor is no longer available for swapping.',
+                ];
+            }
+
+            $serving = Visitor::where('office_id', $user->office_id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'serving')
+                ->where('cashier_id', $user->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$serving) {
+                return [
+                    'status' => 'error',
+                    'message' => 'You are not currently serving a visitor.',
+                ];
+            }
+
+            $serving->update([
+                'status' => 'waiting',
+                'cashier_id' => null,
+            ]);
+
+            $skipped->update([
+                'status' => 'serving',
+                'cashier_id' => $user->id,
+            ]);
+
+            $this->broadcastMonitorUpdate($user->office_id);
+
+            return [
+                'status' => 'success',
+                'message' => "Ticket {$skipped->ticket_number} is now being served.",
+            ];
+        });
+
+        return $result['status'] === 'success'
+            ? back()->with('success', $result['message'])
+            : back()->with('error', $result['message']);
+    }
     public function transfer(Request $request, $id)
     {
         $request->validate([
@@ -265,7 +384,6 @@ class OfficeQueueController extends Controller
 
         $visitor = Visitor::findOrFail($id);
 
-        // Only the staff currently serving the visitor can transfer them
         if (
             $visitor->status !== 'serving' ||
             $visitor->cashier_id !== auth()->id()
@@ -299,7 +417,6 @@ class OfficeQueueController extends Controller
                 );
             }
 
-            // Don't allow transferring to yourself
             if ($newStaff->id === auth()->id()) {
                 return back()->with(
                     'error',
@@ -307,7 +424,6 @@ class OfficeQueueController extends Controller
                 );
             }
 
-            // Make sure the receiving staff isn't already serving someone
             $alreadyServing = Visitor::where('office_id', $currentOffice->id)
                 ->whereDate('created_at', today())
                 ->where('status', 'serving')
@@ -325,7 +441,6 @@ class OfficeQueueController extends Controller
                 'cashier_id' => $newStaff->id,
             ]);
 
-            // Update monitoring page
             $this->broadcastMonitorUpdate($currentOffice->id);
 
             return response()->json([
@@ -334,253 +449,790 @@ class OfficeQueueController extends Controller
             ]);
         }
 
-        $visitor->status = 'transferred';
-        $visitor->save();
+        $today = now()->toDateString();
+        $lastQueue = Visitor::where('office_id', $targetOffice->id)
+            ->whereDate('created_at', $today)
+            ->max('queue_number');
 
-        // Remove visitor from current office monitor
-        $this->broadcastMonitorUpdate($currentOffice->id);
+        $nextQueue = ($lastQueue ?? 0) + 1;
 
-        // Generate new queue number for target office
-        $nextQueue = (
-            Visitor::where('office_id', $targetOffice->id)
-                ->whereDate('created_at', today())
-                ->max(DB::raw('CAST(SUBSTR(ticket_number, 4) AS INTEGER)'))
-            ?? 0
-        ) + 1;
-
-        $prefix = $targetOffice->abbreviation;
-        $newTicket = sprintf('%s-%03d', $prefix, $nextQueue);
-
-        // Create new visitor for target office
-        $newVisitor = Visitor::create([
-            'name' => $visitor->name,
-            'contact_number' => $visitor->contact_number,
-            'id_number' => $visitor->id_number,
-
-            'office_id' => $targetOffice->id,
-            'previous_office_id' => $currentOffice->id,
-
-            'queue_number' => $nextQueue,
-            'ticket_number' => $newTicket,
-
-            'status' => 'waiting',
-            'priority' => $visitor->priority,
+        VisitorTransfer::create([
+            'visitor_id' => $visitor->id,
+            'from_office_id' => $currentOffice->id,
+            'to_office_id' => $targetOffice->id,
+            'from_queue_number' => $visitor->queue_number,
+            'to_queue_number' => $nextQueue,
+            'transferred_by' => auth()->id(),
+            'transferred_at' => now(),
         ]);
 
-        // Update target office monitor
+        $visitor->update([
+            'office_id' => $targetOffice->id,
+            'previous_office_id' => $currentOffice->id,
+            'queue_number' => $nextQueue,
+            'status' => 'waiting',
+            'cashier_id' => null,
+        ]);
+
+        $this->broadcastMonitorUpdate($currentOffice->id);
         $this->broadcastMonitorUpdate($targetOffice->id);
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'new_ticket' => $newTicket,
+                'new_ticket' => $visitor->ticket_number,
+                'message' => "Visitor transferred to {$targetOffice->name}.",
             ]);
         }
 
         return back()->with(
             'success',
-            "Visitor transferred to {$targetOffice->name}. New ticket: {$newTicket}"
-        );
-    }
-
-
-    private function transferResponse(Request $request, array $data)
-    {
-        if ($request->ajax()) {
-            return response()->json($data);
-        }
-
-        return back()->with(
-            $data['success'] ? 'success' : 'error',
-            $data['success'] ? 'Visitor transferred successfully.' : $data['message']
+            "Visitor transferred to {$targetOffice->name}. Ticket remains {$visitor->ticket_number}."
         );
     }
 
     public function history(Request $request)
     {
-        $query = Visitor::with(['office', 'cashier'])
-            ->whereIn('status', ['done', 'skipped', 'transferred']);
-
         $user = Auth::user();
 
-        // Staff sees only their office
-        if ($user && method_exists($user, 'isStaff') && $user->isStaff()) {
-            $query->where('office_id', $user->office_id);
+        $isStaff = $user &&
+            method_exists($user, 'isStaff') &&
+            $user->isStaff();
+
+        $isAdmin = $user &&
+            method_exists($user, 'isAdmin') &&
+            $user->isAdmin();
+
+        $query = Visitor::with([
+            'office',
+            'previousOffice',
+            'cashier',
+            'course',
+            'transfers' => function ($query) {
+                $query->orderBy('transferred_at');
+            },
+            'transfers.fromOffice:id,name',
+            'transfers.toOffice:id,name',
+            'transfers.transferredBy:id,name',
+        ])->whereIn('status', ['done', 'skipped', 'transferred']);
+
+        if ($isStaff) {
+            $query->where(function ($q) use ($user) {
+                $q->where('office_id', $user->office_id)
+                    ->orWhereHas('transfers', function ($transferQuery) use ($user) {
+                        $transferQuery
+                            ->where('from_office_id', $user->office_id)
+                            ->orWhere('to_office_id', $user->office_id);
+                    });
+            });
         }
 
-        // Search
         if ($request->filled('q')) {
-            $search = $request->q;
+            $search = trim($request->q);
 
             $query->where(function ($q) use ($search) {
                 $q->where('ticket_number', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%")
                     ->orWhere('status', 'like', "%{$search}%")
-                    ->orWhereHas('cashier', fn ($c) =>
-                    $c->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('office', fn ($o) =>
-                    $o->where('name', 'like', "%{$search}%"));
-
-                if (strtotime($search)) {
-                    $q->orWhereDate('created_at', $search);
-                }
+                    ->orWhereHas('cashier', function ($cashierQuery) use ($search) {
+                        $cashierQuery->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('office', function ($officeQuery) use ($search) {
+                        $officeQuery->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
-        // Date filter
         if ($request->filled('date')) {
             $query->whereDate('created_at', $request->date);
         }
 
         $history = $query
-            ->orderByDesc('created_at')
+            ->orderByDesc('updated_at')
             ->get();
 
-        if ($user && method_exists($user, 'isAdmin') && $user->isAdmin()) {
+        $history->each(function ($visitor) {
 
+            $firstTransfer = $visitor->transfers
+                ->sortBy('transferred_at')
+                ->first();
+
+            if ($firstTransfer) {
+                $visitor->registration_office_id = $firstTransfer->from_office_id;
+                $visitor->registration_office_name =
+                    $firstTransfer->fromOffice->name ?? '—';
+            } else {
+                $visitor->registration_office_id = $visitor->office_id;
+                $visitor->registration_office_name =
+                    $visitor->office->name ?? '—';
+            }
+        });
+
+        if ($isAdmin) {
             $history = $history
-                ->groupBy(function ($item) {
-
-                    return $item->name . '_' .
-                        $item->created_at->format('Y-m-d');
+                ->groupBy(function ($visitor) {
+                    return $visitor->name . '_' .
+                        $visitor->created_at->format('Y-m-d');
                 })
                 ->map(function ($tickets) {
 
+                    $tickets = $tickets
+                        ->sortBy('created_at')
+                        ->values();
+
                     return [
-                        'visitor' => $tickets->first(),
-                        'tickets' => $tickets
-                            ->sortBy('created_at')
-                            ->values(),
+                        'visitor' => $tickets->last(),
+                        'tickets' => $tickets,
                     ];
+                })
+                ->sortByDesc(function ($group) {
+                    return $group['visitor']->updated_at;
                 })
                 ->values();
         }
 
-        return view('queue.history', compact('history'));
+        return view('queue.history', [
+            'history' => $history,
+            'isAdmin' => $isAdmin,
+            'isStaff' => $isStaff,
+            'staffOfficeId' => $isStaff
+                ? $user->office_id
+                : null,
+        ]);
     }
-
     public function statistics(Request $request)
     {
         $user = auth()->user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Report type
+        |--------------------------------------------------------------------------
+        */
+
         $range = $request->get('range', 'weekly');
-        $selectedMonth = $request->get('month') ?? now('Asia/Manila')->format('Y-m');
+
+        if (!in_array($range, ['weekly', 'monthly'])) {
+            $range = 'weekly';
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Selected month / year
+        |--------------------------------------------------------------------------
+        */
+
+        $selectedMonth = $request->get(
+            'month',
+            now('Asia/Manila')->format('Y-m')
+        );
+
         if (!preg_match('/^\d{4}-\d{2}$/', $selectedMonth)) {
             $selectedMonth = now('Asia/Manila')->format('Y-m');
         }
-        $monthStart = Carbon::createFromFormat('Y-m', $selectedMonth, 'Asia/Manila')->startOfMonth();
+
+        $monthStart = Carbon::createFromFormat(
+            'Y-m',
+            $selectedMonth,
+            'Asia/Manila'
+        )->startOfMonth();
+
         $monthEnd = $monthStart->copy()->endOfMonth();
 
-        if ($range === 'weekly') {
-            $referenceDate = now('Asia/Manila');
-            $start = $referenceDate->copy()->startOfWeek(Carbon::MONDAY);
-            $end = $referenceDate->copy()->endOfWeek(Carbon::SUNDAY);
-        } else {
-            $start = $monthStart->copy();
-            $end = $monthEnd->copy();
+        /*
+        |--------------------------------------------------------------------------
+        | Month / Year dropdown values
+        |--------------------------------------------------------------------------
+        */
+
+        $selectedYear = (int) $monthStart->format('Y');
+        $selectedMonthNumber = $monthStart->format('m');
+
+        $months = [
+            '01' => 'January',
+            '02' => 'February',
+            '03' => 'March',
+            '04' => 'April',
+            '05' => 'May',
+            '06' => 'June',
+            '07' => 'July',
+            '08' => 'August',
+            '09' => 'September',
+            '10' => 'October',
+            '11' => 'November',
+            '12' => 'December',
+        ];
+
+        $currentYear = now('Asia/Manila')->year;
+
+        $years = range(
+            $currentYear - 2,
+            $currentYear + 2
+        );
+
+        $weeks = [];
+
+        $current = $monthStart->copy();
+        $weekNumber = 1;
+
+        while ($current->lte($monthEnd)) {
+
+            $weekStart = $current->copy();
+
+            $weekEnd = $current
+                ->copy()
+                ->endOfWeek(Carbon::SUNDAY);
+
+            if ($weekEnd->gt($monthEnd)) {
+                $weekEnd = $monthEnd->copy();
+            }
+
+            $weeks[$weekNumber] = [
+                'start' => $weekStart->copy(),
+                'end' => $weekEnd->copy(),
+            ];
+
+            $current = $weekEnd->copy()->addDay();
+
+            $weekNumber++;
         }
 
-        if ($user->isStaff()) {
-            $visitors = DB::table('visitors')
-                ->where('office_id', $user->office_id)
+        /*
+        |--------------------------------------------------------------------------
+        | Selected week
+        |--------------------------------------------------------------------------
+        */
+
+        $selectedWeek = (int) $request->get('week', 1);
+
+        if (!isset($weeks[$selectedWeek])) {
+            $selectedWeek = 1;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Reporting period
+        |--------------------------------------------------------------------------
+        */
+
+        if ($range === 'weekly') {
+
+            $start = $weeks[$selectedWeek]['start']
+                ->copy()
+                ->startOfDay();
+
+            $end = $weeks[$selectedWeek]['end']
+                ->copy()
+                ->endOfDay();
+
+        } else {
+
+            $start = $monthStart
+                ->copy()
+                ->startOfDay();
+
+            $end = $monthEnd
+                ->copy()
+                ->endOfDay();
+        }
+
+        $visitorsQuery = Visitor::with([
+            'transfers',
+        ])->where(function ($query) use ($start, $end) {
+
+            $query
                 ->whereBetween('created_at', [$start, $end])
+                ->orWhereHas('transfers', function ($transferQuery) use ($start, $end) {
+                    $transferQuery->whereBetween(
+                        'transferred_at',
+                        [$start, $end]
+                    );
+                });
+
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | STAFF STATISTICS
+        |--------------------------------------------------------------------------
+        */
+
+        if ($user->isStaff()) {
+
+            $officeId = $user->office_id;
+
+            $visitors = $visitorsQuery
+                ->where(function ($query) use ($officeId) {
+
+                    $query
+                        ->where('office_id', $officeId)
+
+                        ->orWhereHas('transfers', function ($transferQuery) use ($officeId) {
+
+                            $transferQuery
+                                ->where('from_office_id', $officeId)
+                                ->orWhere('to_office_id', $officeId);
+
+                        });
+
+                })
                 ->get();
 
-            if ($range === 'weekly') {
+            /*
+            |--------------------------------------------------------------------------
+            | Determine every office touched by each ticket
+            |--------------------------------------------------------------------------
+            */
 
-                $data = $visitors
-                    ->groupBy(function ($v) {
-                        return Carbon::parse($v->created_at)->toDateString();
-                    })
-                    ->map->count();
+            $officeTickets = $visitors
+                ->filter(function ($visitor) use ($officeId) {
 
-                $labels = [];
-                $counts = [];
-
-                $current = $start->copy();
-                while ($current <= $end) {
-                    $dateString = $current->toDateString();
-                    $labels[] = $current->format('D');
-                    $counts[] = $data[$dateString] ?? 0;
-                    $current->addDay();
-                }
-
-                return view('queue.statistics', [
-                    'role' => 'staff',
-                    'labels' => $labels,
-                    'counts' => $counts,
-                    'range' => $range,
-                    'weekCounts' => [],
-                    'selectedMonth' => $selectedMonth
-                ]);
-            }
-
-            $weekRanges = [];
-            $weekCounts = [];
-
-            $current = $start->copy();
-            $weekNumber = 1;
-
-            while ($current <= $end) {
-                $weekStart = $current->copy();
-                $weekEnd = $current->copy()->endOfWeek(Carbon::SUNDAY);
-                if ($weekEnd->gt($end)) $weekEnd = $end->copy();
-
-                $weekRanges[$weekNumber] = [
-                    'start' => $weekStart->format('M j'),
-                    'end' => $weekEnd->format('M j')
-                ];
-
-                $weekCounts[$weekNumber] = 0;
-                $current = $weekEnd->copy()->addDay();
-                $weekNumber++;
-            }
-
-            foreach ($visitors as $visitor) {
-                $date = Carbon::parse($visitor->created_at);
-                foreach ($weekRanges as $week => $rangeData) {
-                    $startDate = Carbon::parse($rangeData['start']);
-                    $endDate = Carbon::parse($rangeData['end']);
-                    if ($date->between($startDate, $endDate)) {
-                        $weekCounts[$week]++;
-                        break;
+                    if ((int) $visitor->office_id === (int) $officeId) {
+                        return true;
                     }
-                }
-            }
+
+                    return $visitor->transfers->contains(function ($transfer) use ($officeId) {
+
+                        return
+                            (int) $transfer->from_office_id === (int) $officeId ||
+                            (int) $transfer->to_office_id === (int) $officeId;
+
+                    });
+
+                })
+
+                /*
+                |--------------------------------------------------------------------------
+                | Same ticket should only count once for this office
+                |--------------------------------------------------------------------------
+                */
+
+                ->unique('ticket_number')
+                ->values();
+
+            $totalTickets = $officeTickets->count();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Completed
+            |--------------------------------------------------------------------------
+            |
+            | Completed belongs to the office where the ticket currently finished.
+            |
+            */
+
+            $completed = $officeTickets
+                ->filter(function ($visitor) use ($officeId) {
+
+                    return
+                        $visitor->status === 'done' &&
+                        (int) $visitor->office_id === (int) $officeId;
+
+                })
+                ->unique('ticket_number')
+                ->count();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Skipped
+            |--------------------------------------------------------------------------
+            */
+
+            $skipped = $officeTickets
+                ->filter(function ($visitor) use ($officeId) {
+
+                    return
+                        $visitor->status === 'skipped' &&
+                        (int) $visitor->office_id === (int) $officeId;
+
+                })
+                ->unique('ticket_number')
+                ->count();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Transferred
+            |--------------------------------------------------------------------------
+            |
+            | A transferred ticket is one that had a transfer during the
+            | selected reporting period and has not ultimately been completed
+            | or skipped at this office.
+            |
+            */
+
+            $transferred = $officeTickets
+                ->filter(function ($visitor) use ($officeId, $start, $end) {
+
+                    $wasTransferred = $visitor->transfers->contains(function ($transfer) use ($start, $end) {
+
+                        if (!$transfer->transferred_at) {
+                            return false;
+                        }
+
+                        $transferredAt = Carbon::parse(
+                            $transfer->transferred_at,
+                            'Asia/Manila'
+                        );
+
+                        return $transferredAt->between(
+                            $start,
+                            $end
+                        );
+
+                    });
+
+                    if (!$wasTransferred) {
+                        return false;
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | If the ticket eventually completed/skipped at this office,
+                    | count it under that final status instead of Transferred.
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        (int) $visitor->office_id === (int) $officeId &&
+                        in_array($visitor->status, ['done', 'skipped'])
+                    ) {
+                        return false;
+                    }
+
+                    return true;
+
+                })
+                ->unique('ticket_number')
+                ->count();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Students / Visitors
+            |--------------------------------------------------------------------------
+            */
+
+            $students = $officeTickets
+                ->where('type', 'student')
+                ->unique('ticket_number')
+                ->count();
+
+            $visitorsCount = $officeTickets
+                ->where('type', 'visitor')
+                ->unique('ticket_number')
+                ->count();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Chart data
+            |--------------------------------------------------------------------------
+            |
+            | Weekly:
+            | Show the selected week's daily ticket totals.
+            |
+            | Monthly:
+            | Show Week 1, Week 2, Week 3, etc.
+            |
+            */
 
             $labels = [];
             $counts = [];
-            foreach ($weekCounts as $week => $count) {
-                $labels[] = 'Week ' . $week;
-                $counts[] = $count;
+
+            if ($range === 'weekly') {
+
+                $current = $start->copy()->startOfDay();
+
+                while ($current->lte($end)) {
+
+                    $dayStart = $current->copy()->startOfDay();
+                    $dayEnd = $current->copy()->endOfDay();
+
+                    $dayTickets = $officeTickets
+                        ->filter(function ($visitor) use ($dayStart, $dayEnd) {
+
+                            $created = Carbon::parse(
+                                $visitor->created_at,
+                                'Asia/Manila'
+                            );
+
+                            return $created->between(
+                                $dayStart,
+                                $dayEnd
+                            );
+
+                        })
+                        ->unique('ticket_number');
+
+                    $labels[] = $current->format('D');
+                    $counts[] = $dayTickets->count();
+
+                    $current->addDay();
+                }
+
+            } else {
+
+                foreach ($weeks as $weekNumber => $week) {
+
+                    $weekStart = $week['start']
+                        ->copy()
+                        ->startOfDay();
+
+                    $weekEnd = $week['end']
+                        ->copy()
+                        ->endOfDay();
+
+                    $weekTickets = $officeTickets
+                        ->filter(function ($visitor) use ($weekStart, $weekEnd) {
+
+                            $created = Carbon::parse(
+                                $visitor->created_at,
+                                'Asia/Manila'
+                            );
+
+                            return $created->between(
+                                $weekStart,
+                                $weekEnd
+                            );
+
+                        })
+                        ->unique('ticket_number');
+
+                    $labels[] = 'Week ' . $weekNumber;
+                    $counts[] = $weekTickets->count();
+                }
             }
 
             return view('queue.statistics', [
+
                 'role' => 'staff',
+
+                'range' => $range,
+
+                'selectedMonth' => $selectedMonth,
+                'selectedMonthNumber' => $selectedMonthNumber,
+                'selectedYear' => $selectedYear,
+
+                'months' => $months,
+                'years' => $years,
+
+                'weeks' => $weeks,
+                'selectedWeek' => $selectedWeek,
+
+                'periodStart' => $start,
+                'periodEnd' => $end,
+
+                'totalTickets' => $totalTickets,
+                'completed' => $completed,
+                'skipped' => $skipped,
+                'transferred' => $transferred,
+
+                'students' => $students,
+                'visitorsCount' => $visitorsCount,
+
                 'labels' => $labels,
                 'counts' => $counts,
-                'range' => $range,
-                'weekCounts' => $weekCounts,
-                'weekRanges' => $weekRanges,
-                'selectedMonth' => $selectedMonth
             ]);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN STATISTICS
+        |--------------------------------------------------------------------------
+        */
+
         if ($user->isAdmin()) {
-            $data = DB::table('visitors')
-                ->join('offices', 'visitors.office_id', '=', 'offices.id')
-                ->selectRaw('offices.name as office, COUNT(visitors.id) as total')
-                ->whereBetween('visitors.created_at', [$start, $end])
-                ->groupBy('offices.name')
-                ->orderByDesc('total')
-                ->get();
+
+            $offices = Office::orderBy('name')->get();
+
+            $visitors = $visitorsQuery->get();
+
+            $officeData = $offices->map(function ($office) use (
+                $visitors,
+                $start,
+                $end
+            ) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Tickets that touched this office
+                |--------------------------------------------------------------------------
+                */
+
+                $officeTickets = $visitors
+                    ->filter(function ($visitor) use ($office) {
+
+                        if ((int) $visitor->office_id === (int) $office->id) {
+                            return true;
+                        }
+
+                        return $visitor->transfers->contains(function ($transfer) use ($office) {
+
+                            return
+                                (int) $transfer->from_office_id === (int) $office->id ||
+                                (int) $transfer->to_office_id === (int) $office->id;
+
+                        });
+
+                    })
+                    ->unique('ticket_number')
+                    ->values();
+
+                $totalTickets = $officeTickets->count();
+
+                /*
+                |--------------------------------------------------------------------------
+                | Completed
+                |--------------------------------------------------------------------------
+                */
+
+                $completed = $officeTickets
+                    ->filter(function ($visitor) use ($office) {
+
+                        return
+                            $visitor->status === 'done' &&
+                            (int) $visitor->office_id === (int) $office->id;
+
+                    })
+                    ->unique('ticket_number')
+                    ->count();
+
+                /*
+                |--------------------------------------------------------------------------
+                | Skipped
+                |--------------------------------------------------------------------------
+                */
+
+                $skipped = $officeTickets
+                    ->filter(function ($visitor) use ($office) {
+
+                        return
+                            $visitor->status === 'skipped' &&
+                            (int) $visitor->office_id === (int) $office->id;
+
+                    })
+                    ->unique('ticket_number')
+                    ->count();
+
+                /*
+                |--------------------------------------------------------------------------
+                | Transferred
+                |--------------------------------------------------------------------------
+                */
+
+                $transferred = $officeTickets
+                    ->filter(function ($visitor) use (
+                        $office,
+                        $start,
+                        $end
+                    ) {
+
+                        $wasTransferred = $visitor->transfers->contains(function ($transfer) use (
+                            $start,
+                            $end
+                        ) {
+
+                            if (!$transfer->transferred_at) {
+                                return false;
+                            }
+
+                            $transferredAt = Carbon::parse(
+                                $transfer->transferred_at,
+                                'Asia/Manila'
+                            );
+
+                            return $transferredAt->between(
+                                $start,
+                                $end
+                            );
+
+                        });
+
+                        if (!$wasTransferred) {
+                            return false;
+                        }
+
+                        if (
+                            (int) $visitor->office_id === (int) $office->id &&
+                            in_array($visitor->status, ['done', 'skipped'])
+                        ) {
+                            return false;
+                        }
+
+                        return true;
+
+                    })
+                    ->unique('ticket_number')
+                    ->count();
+
+                /*
+                |--------------------------------------------------------------------------
+                | Students / Visitors
+                |--------------------------------------------------------------------------
+                */
+
+                $students = $officeTickets
+                    ->where('type', 'student')
+                    ->unique('ticket_number')
+                    ->count();
+
+                $visitorCount = $officeTickets
+                    ->where('type', 'visitor')
+                    ->unique('ticket_number')
+                    ->count();
+
+                return [
+                    'office' => $office->name,
+                    'total' => $totalTickets,
+                    'completed' => $completed,
+                    'skipped' => $skipped,
+                    'transferred' => $transferred,
+                    'students' => $students,
+                    'visitors' => $visitorCount,
+                ];
+            });
+
+            /*
+            |--------------------------------------------------------------------------
+            | Admin overall totals
+            |--------------------------------------------------------------------------
+            */
+
+            $adminTotalTickets = $officeData->sum('total');
+            $adminCompleted = $officeData->sum('completed');
+            $adminSkipped = $officeData->sum('skipped');
+            $adminTransferred = $officeData->sum('transferred');
+            $adminStudents = $officeData->sum('students');
+            $adminVisitors = $officeData->sum('visitors');
 
             return view('queue.statistics', [
+
                 'role' => 'admin',
-                'officeLabels' => $data->pluck('office'),
-                'officeCounts' => $data->pluck('total'),
-                'officeData' => $data,
+
                 'range' => $range,
-                'selectedMonth' => $selectedMonth
+
+                'selectedMonth' => $selectedMonth,
+                'selectedMonthNumber' => $selectedMonthNumber,
+                'selectedYear' => $selectedYear,
+
+                'months' => $months,
+                'years' => $years,
+
+                'weeks' => $weeks,
+                'selectedWeek' => $selectedWeek,
+
+                'periodStart' => $start,
+                'periodEnd' => $end,
+
+                'officeData' => $officeData,
+
+                'officeLabels' => $officeData->pluck('office'),
+                'officeCounts' => $officeData->pluck('total'),
+
+                'totalTickets' => $adminTotalTickets,
+                'completed' => $adminCompleted,
+                'skipped' => $adminSkipped,
+                'transferred' => $adminTransferred,
+                'students' => $adminStudents,
+                'visitorsCount' => $adminVisitors,
             ]);
         }
 

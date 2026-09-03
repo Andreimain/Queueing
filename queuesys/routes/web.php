@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('skipped')->group(function () {
         Route::get('/', [OfficeQueueController::class, 'viewSkippedAll'])->name('skipped.list');
         Route::post('/restore', [OfficeQueueController::class, 'restoreSkipped'])->name('skipped.restore');
+        Route::post('/swap', [OfficeQueueController::class, 'swapSkipped'])->name('skipped.swap');
     });
 
     //Transfer Visitor

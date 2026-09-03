@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Office;
+use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,10 +15,11 @@ class StaffController extends Controller
      */
     public function index()
     {
-        $staff = User::with('office')->paginate(7);
+        $staff = User::with(['office', 'courses'])->paginate(7);
         $offices = Office::all();
+        $courses = Course::orderBy('name')->get();
 
-        return view('staff.index', compact('staff', 'offices'));
+        return view('staff.index', compact('staff', 'offices', 'courses'));
     }
 
 
@@ -31,14 +33,21 @@ class StaffController extends Controller
             'email'     => 'required|string|email|unique:users',
             'password'  => 'required|string|min:6',
             'office_id' => 'required|exists:offices,id',
+            'courses' => 'nullable|array',
+            'courses.*' => 'exists:courses,id',
         ]);
 
-        User::create([
+        $staff = User::create([
             'name'      => $request->name,
             'email'     => $request->email,
             'password'  => Hash::make($request->password),
+            'role' => 'staff',
             'office_id' => $request->office_id,
         ]);
+
+        if ($staff->office?->abbreviation === 'RO') {
+            $staff->courses()->sync($request->input('courses', []));
+        }
 
         return redirect()
             ->route('staff.index')
@@ -50,9 +59,11 @@ class StaffController extends Controller
      */
     public function edit($id)
     {
-        $staff = User::findOrFail($id);
-        $offices = Office::all(); // so we can also reassign staff to a different office
-        return view('staff.edit_staff', compact('staff', 'offices'));
+        $staff = User::with('courses')->findOrFail($id);
+        $offices = Office::all();
+        $courses = Course::orderBy('name')->get();
+
+        return view('staff.edit_staff', compact('staff', 'offices', 'courses'));
     }
 
     /**
@@ -68,6 +79,8 @@ class StaffController extends Controller
             'password' => 'nullable|string|min:6',
             'role' => 'required|in:staff,admin',
             'office_id' => 'nullable|exists:offices,id',
+            'courses' => 'nullable|array',
+            'courses.*' => 'exists:courses,id',
         ]);
 
         $staff->name  = $request->name;
@@ -85,7 +98,16 @@ class StaffController extends Controller
         }
 
         $staff->save();
+        $staff->load('office');
 
+        if (
+            $staff->role === 'staff' &&
+            $staff->office?->abbreviation === 'RO'
+        ) {
+            $staff->courses()->sync($request->input('courses', []));
+        } else {
+            $staff->courses()->detach();
+        }
         return redirect()
             ->route('staff.index')
             ->with('success', 'Staff updated successfully.');

@@ -28,11 +28,6 @@ class Office extends Model
         return $this->hasMany(Visitor::class);
     }
 
-    public function office()
-    {
-        return $this->belongsTo(Office::class);
-    }
-
     public function staff()
     {
         return $this->hasMany(User::class)->where('role', 'staff');
@@ -40,5 +35,15 @@ class Office extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function outgoingTransfers()
+    {
+        return $this->hasMany(VisitorTransfer::class, 'from_office_id');
+    }
+
+    public function incomingTransfers()
+    {
+        return $this->hasMany(VisitorTransfer::class, 'to_office_id');
     }
 }
