@@ -514,7 +514,10 @@ class OfficeQueueController extends Controller
             'transfers.fromOffice:id,name',
             'transfers.toOffice:id,name',
             'transfers.transferredBy:id,name',
-        ])->whereIn('status', ['done', 'skipped', 'transferred']);
+        ])->where(function ($q) {
+            $q->whereIn('status', ['done', 'skipped', 'transferred'])
+                ->orWhereNull('office_id');
+        });
 
         if ($isStaff) {
             $query->where(function ($q) use ($user) {
@@ -539,7 +542,8 @@ class OfficeQueueController extends Controller
                     })
                     ->orWhereHas('office', function ($officeQuery) use ($search) {
                         $officeQuery->where('name', 'like', "%{$search}%");
-                    });
+                    })
+                    ->orWhere('other_office', 'like', "%{$search}%");
             });
         }
 
@@ -561,6 +565,10 @@ class OfficeQueueController extends Controller
                 $visitor->registration_office_id = $firstTransfer->from_office_id;
                 $visitor->registration_office_name =
                     $firstTransfer->fromOffice->name ?? '—';
+            } elseif (is_null($visitor->office_id)) {
+                $visitor->registration_office_id = null;
+                $visitor->registration_office_name =
+                    $visitor->other_office ?? '—';
             } else {
                 $visitor->registration_office_id = $visitor->office_id;
                 $visitor->registration_office_name =
@@ -572,7 +580,9 @@ class OfficeQueueController extends Controller
             $history = $history
                 ->groupBy(function ($visitor) {
                     return $visitor->name . '_' .
-                        $visitor->created_at->format('Y-m-d');
+                        $visitor->created_at->format('Y-m-d') . '_' .
+                        ($visitor->office_id ?? 'others') . '_' .
+                        ($visitor->other_office ?? '');
                 })
                 ->map(function ($tickets) {
 
@@ -604,23 +614,11 @@ class OfficeQueueController extends Controller
     {
         $user = auth()->user();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Report type
-        |--------------------------------------------------------------------------
-        */
-
         $range = $request->get('range', 'weekly');
 
         if (!in_array($range, ['weekly', 'monthly'])) {
             $range = 'weekly';
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Selected month / year
-        |--------------------------------------------------------------------------
-        */
 
         $selectedMonth = $request->get(
             'month',
@@ -638,12 +636,6 @@ class OfficeQueueController extends Controller
         )->startOfMonth();
 
         $monthEnd = $monthStart->copy()->endOfMonth();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Month / Year dropdown values
-        |--------------------------------------------------------------------------
-        */
 
         $selectedYear = (int) $monthStart->format('Y');
         $selectedMonthNumber = $monthStart->format('m');
@@ -697,23 +689,11 @@ class OfficeQueueController extends Controller
             $weekNumber++;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Selected week
-        |--------------------------------------------------------------------------
-        */
-
         $selectedWeek = (int) $request->get('week', 1);
 
         if (!isset($weeks[$selectedWeek])) {
             $selectedWeek = 1;
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Reporting period
-        |--------------------------------------------------------------------------
-        */
 
         if ($range === 'weekly') {
 
@@ -724,7 +704,6 @@ class OfficeQueueController extends Controller
             $end = $weeks[$selectedWeek]['end']
                 ->copy()
                 ->endOfDay();
-
         } else {
 
             $start = $monthStart
@@ -748,14 +727,7 @@ class OfficeQueueController extends Controller
                         [$start, $end]
                     );
                 });
-
         });
-
-        /*
-        |--------------------------------------------------------------------------
-        | STAFF STATISTICS
-        |--------------------------------------------------------------------------
-        */
 
         if ($user->isStaff()) {
 
@@ -772,17 +744,9 @@ class OfficeQueueController extends Controller
                             $transferQuery
                                 ->where('from_office_id', $officeId)
                                 ->orWhere('to_office_id', $officeId);
-
                         });
-
                 })
                 ->get();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Determine every office touched by each ticket
-            |--------------------------------------------------------------------------
-            */
 
             $officeTickets = $visitors
                 ->filter(function ($visitor) use ($officeId) {
@@ -796,47 +760,22 @@ class OfficeQueueController extends Controller
                         return
                             (int) $transfer->from_office_id === (int) $officeId ||
                             (int) $transfer->to_office_id === (int) $officeId;
-
                     });
-
                 })
-
-                /*
-                |--------------------------------------------------------------------------
-                | Same ticket should only count once for this office
-                |--------------------------------------------------------------------------
-                */
 
                 ->unique('ticket_number')
                 ->values();
 
             $totalTickets = $officeTickets->count();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Completed
-            |--------------------------------------------------------------------------
-            |
-            | Completed belongs to the office where the ticket currently finished.
-            |
-            */
-
             $completed = $officeTickets
                 ->filter(function ($visitor) use ($officeId) {
 
                     return
                         $visitor->status === 'done' &&
                         (int) $visitor->office_id === (int) $officeId;
-
                 })
                 ->unique('ticket_number')
                 ->count();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Skipped
-            |--------------------------------------------------------------------------
-            */
 
             $skipped = $officeTickets
                 ->filter(function ($visitor) use ($officeId) {
@@ -844,21 +783,9 @@ class OfficeQueueController extends Controller
                     return
                         $visitor->status === 'skipped' &&
                         (int) $visitor->office_id === (int) $officeId;
-
                 })
                 ->unique('ticket_number')
                 ->count();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Transferred
-            |--------------------------------------------------------------------------
-            |
-            | A transferred ticket is one that had a transfer during the
-            | selected reporting period and has not ultimately been completed
-            | or skipped at this office.
-            |
-            */
 
             $transferred = $officeTickets
                 ->filter(function ($visitor) use ($officeId, $start, $end) {
@@ -878,19 +805,11 @@ class OfficeQueueController extends Controller
                             $start,
                             $end
                         );
-
                     });
 
                     if (!$wasTransferred) {
                         return false;
                     }
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | If the ticket eventually completed/skipped at this office,
-                    | count it under that final status instead of Transferred.
-                    |--------------------------------------------------------------------------
-                    */
 
                     if (
                         (int) $visitor->office_id === (int) $officeId &&
@@ -900,16 +819,9 @@ class OfficeQueueController extends Controller
                     }
 
                     return true;
-
                 })
                 ->unique('ticket_number')
                 ->count();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Students / Visitors
-            |--------------------------------------------------------------------------
-            */
 
             $students = $officeTickets
                 ->where('type', 'student')
@@ -920,19 +832,6 @@ class OfficeQueueController extends Controller
                 ->where('type', 'visitor')
                 ->unique('ticket_number')
                 ->count();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Chart data
-            |--------------------------------------------------------------------------
-            |
-            | Weekly:
-            | Show the selected week's daily ticket totals.
-            |
-            | Monthly:
-            | Show Week 1, Week 2, Week 3, etc.
-            |
-            */
 
             $labels = [];
             $counts = [];
@@ -958,7 +857,6 @@ class OfficeQueueController extends Controller
                                 $dayStart,
                                 $dayEnd
                             );
-
                         })
                         ->unique('ticket_number');
 
@@ -967,7 +865,6 @@ class OfficeQueueController extends Controller
 
                     $current->addDay();
                 }
-
             } else {
 
                 foreach ($weeks as $weekNumber => $week) {
@@ -992,7 +889,6 @@ class OfficeQueueController extends Controller
                                 $weekStart,
                                 $weekEnd
                             );
-
                         })
                         ->unique('ticket_number');
 
@@ -1033,12 +929,6 @@ class OfficeQueueController extends Controller
             ]);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | ADMIN STATISTICS
-        |--------------------------------------------------------------------------
-        */
-
         if ($user->isAdmin()) {
 
             $offices = Office::orderBy('name')->get();
@@ -1050,13 +940,6 @@ class OfficeQueueController extends Controller
                 $start,
                 $end
             ) {
-
-                /*
-                |--------------------------------------------------------------------------
-                | Tickets that touched this office
-                |--------------------------------------------------------------------------
-                */
-
                 $officeTickets = $visitors
                     ->filter(function ($visitor) use ($office) {
 
@@ -1069,37 +952,21 @@ class OfficeQueueController extends Controller
                             return
                                 (int) $transfer->from_office_id === (int) $office->id ||
                                 (int) $transfer->to_office_id === (int) $office->id;
-
                         });
-
                     })
                     ->unique('ticket_number')
                     ->values();
 
                 $totalTickets = $officeTickets->count();
-
-                /*
-                |--------------------------------------------------------------------------
-                | Completed
-                |--------------------------------------------------------------------------
-                */
-
                 $completed = $officeTickets
                     ->filter(function ($visitor) use ($office) {
 
                         return
                             $visitor->status === 'done' &&
                             (int) $visitor->office_id === (int) $office->id;
-
                     })
                     ->unique('ticket_number')
                     ->count();
-
-                /*
-                |--------------------------------------------------------------------------
-                | Skipped
-                |--------------------------------------------------------------------------
-                */
 
                 $skipped = $officeTickets
                     ->filter(function ($visitor) use ($office) {
@@ -1107,16 +974,9 @@ class OfficeQueueController extends Controller
                         return
                             $visitor->status === 'skipped' &&
                             (int) $visitor->office_id === (int) $office->id;
-
                     })
                     ->unique('ticket_number')
                     ->count();
-
-                /*
-                |--------------------------------------------------------------------------
-                | Transferred
-                |--------------------------------------------------------------------------
-                */
 
                 $transferred = $officeTickets
                     ->filter(function ($visitor) use (
@@ -1143,7 +1003,6 @@ class OfficeQueueController extends Controller
                                 $start,
                                 $end
                             );
-
                         });
 
                         if (!$wasTransferred) {
@@ -1158,16 +1017,9 @@ class OfficeQueueController extends Controller
                         }
 
                         return true;
-
                     })
                     ->unique('ticket_number')
                     ->count();
-
-                /*
-                |--------------------------------------------------------------------------
-                | Students / Visitors
-                |--------------------------------------------------------------------------
-                */
 
                 $students = $officeTickets
                     ->where('type', 'student')
@@ -1189,12 +1041,6 @@ class OfficeQueueController extends Controller
                     'visitors' => $visitorCount,
                 ];
             });
-
-            /*
-            |--------------------------------------------------------------------------
-            | Admin overall totals
-            |--------------------------------------------------------------------------
-            */
 
             $adminTotalTickets = $officeData->sum('total');
             $adminCompleted = $officeData->sum('completed');

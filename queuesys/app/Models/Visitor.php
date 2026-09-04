@@ -16,6 +16,7 @@ class Visitor extends Model
         'type',
         'course_id',
         'office_id',
+        'other_office',
         'previous_office_id',
         'queue_number',
         'ticket_number',

@@ -13,33 +13,13 @@
 
         {{-- Search & Filter --}}
         <form method="GET" class="mb-4 flex flex-wrap items-center gap-2">
-            <input
-                type="text"
-                name="q"
-                value="{{ request('q') }}"
-                placeholder="Search ticket, name, office..."
-                autocomplete="off"
-                class="border rounded px-3 py-2 w-full md:w-64"
-            >
-
-            <input
-                type="date"
-                name="date"
-                value="{{ request('date') }}"
-                class="border rounded px-3 py-2"
-            >
-
-            <button
-                type="submit"
-                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
+            <input type="text" name="q" value="{{ request('q') }}" placeholder="Search ticket, name, office..."
+                autocomplete="off" class="border rounded px-3 py-2 w-full md:w-64">
+            <input type="date" name="date" value="{{ request('date') }}" class="border rounded px-3 py-2">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                 Search
             </button>
-
-            <a
-                href="{{ route('queue.history') }}"
-                class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
+            <a href="{{ route('queue.history') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
                 Reset
             </a>
         </form>
@@ -73,6 +53,7 @@
                             'done' => 'bg-emerald-100 text-emerald-800',
                             'skipped' => 'bg-amber-100 text-amber-800',
                             'transferred' => 'bg-blue-100 text-blue-800',
+                            'other' => 'bg-gray-100 text-gray-800',
                         ];
                     @endphp
 
@@ -87,32 +68,18 @@
                                 ->map(function ($transfer) {
                                     return [
                                         'transferred_at' => $transfer->transferred_at,
-
-                                        'from_queue_number' =>
-                                            $transfer->from_queue_number,
-
-                                        'to_queue_number' =>
-                                            $transfer->to_queue_number,
-
-                                        'from_office_id' =>
-                                            $transfer->from_office_id,
-
-                                        'to_office_id' =>
-                                            $transfer->to_office_id,
-
+                                        'from_queue_number' => $transfer->from_queue_number,
+                                        'to_queue_number' => $transfer->to_queue_number,
+                                        'from_office_id' => $transfer->from_office_id,
+                                        'to_office_id' => $transfer->to_office_id,
                                         'from_office' => [
-                                            'name' =>
-                                                $transfer->fromOffice->name ?? '—',
+                                            'name' => $transfer->fromOffice->name ?? '—',
                                         ],
-
                                         'to_office' => [
-                                            'name' =>
-                                                $transfer->toOffice->name ?? '—',
+                                            'name' => $transfer->toOffice->name ?? '—',
                                         ],
-
                                         'transferred_by' => [
-                                            'name' =>
-                                                $transfer->transferredBy->name ?? 'Unknown',
+                                            'name' => $transfer->transferredBy->name ?? 'Unknown',
                                         ],
                                     ];
                                 })
@@ -120,32 +87,28 @@
 
                             $displayStatus = $visitor->status;
 
+                            if (is_null($visitor->office_id)) {
+                                $displayStatus = 'other';
+                            }
+
                             if ($isStaff) {
                                 $officeTransfers = $visitor->transfers
                                     ->filter(function ($transfer) use ($staffOfficeId) {
-                                        return
-                                            $transfer->from_office_id == $staffOfficeId ||
+                                        return $transfer->from_office_id == $staffOfficeId ||
                                             $transfer->to_office_id == $staffOfficeId;
                                     })
                                     ->sortByDesc('transferred_at')
                                     ->values();
 
-                                $latestOfficeTransfer =
-                                    $officeTransfers->first();
+                                $latestOfficeTransfer = $officeTransfers->first();
 
                                 if ($latestOfficeTransfer) {
-
-                                    if (
-                                        $latestOfficeTransfer->from_office_id
-                                        == $staffOfficeId
-                                    ) {
+                                    if ($latestOfficeTransfer->from_office_id == $staffOfficeId) {
                                         $displayStatus = 'transferred';
                                     }
 
                                     if (
-                                        $latestOfficeTransfer->to_office_id
-                                        == $staffOfficeId
-                                        &&
+                                        $latestOfficeTransfer->to_office_id == $staffOfficeId &&
                                         $visitor->office_id == $staffOfficeId
                                     ) {
                                         $displayStatus = $visitor->status;
@@ -157,7 +120,7 @@
                         <tr class="border-t hover:bg-gray-50">
 
                             <td class="p-3 font-semibold">
-                                {{ $visitor->ticket_number }}
+                                {{ $visitor->ticket_number ?? '—' }}
                             </td>
 
                             <td class="p-3">
@@ -166,7 +129,11 @@
 
                             @if ($isAdmin)
                                 <td class="p-3">
-                                    {{ $visitor->office->name ?? '—' }}
+                                    @if (is_null($visitor->office_id))
+                                        {{ $visitor->other_office ?? '—' }}
+                                    @else
+                                        {{ $visitor->office->name ?? '—' }}
+                                    @endif
                                 </td>
                             @endif
 
@@ -181,20 +148,18 @@
                             </td>
 
                             <td class="p-3">
-                                <span class="px-2 py-0.5 rounded-full text-xs font-medium capitalize {{ $statusColors[$displayStatus] ?? 'bg-gray-100 text-gray-800' }}">
+                                <span
+                                    class="px-2 py-0.5 rounded-full text-xs font-medium capitalize {{ $statusColors[$displayStatus] ?? 'bg-gray-100 text-gray-800' }}">
                                     {{ $displayStatus }}
                                 </span>
                             </td>
 
                             <td class="p-3 text-gray-600">
-                                {{ $visitor->updated_at
-                                    ->timezone('Asia/Manila')
-                                    ->format('M d, Y') }}
+                                {{ $visitor->updated_at->timezone('Asia/Manila')->format('M d, Y') }}
                             </td>
 
                             <td class="p-3">
-                                <button
-                                    type="button"
+                                <button type="button"
                                     class="infoBtn bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded text-xs"
                                     data-name="{{ $visitor->name }}"
                                     data-contact="{{ $visitor->contact_number ?? '' }}"
@@ -202,7 +167,7 @@
                                     data-transfers='@json($transferData)'
                                     data-registration-office-id="{{ $visitor->registration_office_id }}"
                                     data-registration-office="{{ $visitor->registration_office_name }}"
-                                >
+                                    data-created-at="{{ $visitor->created_at }}">
                                     Info
                                 </button>
                             </td>
@@ -247,16 +212,10 @@
                     Ticket History
                 </h4>
 
-                <div
-                    id="timeline"
-                    class="space-y-8"
-                ></div>
+                <div id="timeline" class="space-y-8"></div>
 
-                <button
-                    id="closeModal"
-                    type="button"
-                    class="absolute top-2 right-3 text-gray-500 hover:text-gray-700 text-xl"
-                >
+                <button id="closeModal" type="button"
+                    class="absolute top-2 right-3 text-gray-500 hover:text-gray-700 text-xl">
                     &times;
                 </button>
 

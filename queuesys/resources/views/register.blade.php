@@ -172,6 +172,7 @@
 
                 <select
                     name="office_id"
+                    id="officeSelect"
                     required
                     class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
                            focus:ring-2 focus:ring-emerald-400
@@ -193,7 +194,34 @@
                             {{ $office->name }}
                         </option>
                     @endforeach
+
+                    <option
+                        value="others"
+                        {{ old('office_id') === 'others' ? 'selected' : '' }}
+                    >
+                        Others
+                    </option>
                 </select>
+            </div>
+
+            <div
+                id="otherOfficeField"
+                class="{{ old('office_id') === 'others' ? '' : 'hidden' }}"
+            >
+                <label class="block text-sm font-semibold text-emerald-800">
+                    Specify Office
+                </label>
+
+                <input
+                    type="text"
+                    name="other_office"
+                    id="otherOfficeInput"
+                    value="{{ old('other_office') }}"
+                    placeholder="e.g. Library"
+                    class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
+                           focus:ring-2 focus:ring-emerald-400
+                           focus:border-emerald-400 transition"
+                >
             </div>
 
             {{-- Submit --}}
@@ -205,7 +233,7 @@
                            bg-emerald-600 text-white font-semibold py-2.5
                            rounded-lg hover:bg-emerald-700 transition"
                 >
-                    Join Queue
+                    Register
                 </button>
             </div>
         </form>

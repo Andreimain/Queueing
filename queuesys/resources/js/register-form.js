@@ -11,15 +11,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const courseField = document.getElementById('courseField');
     const courseSelect = document.getElementById('courseSelect');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Student / Visitor Registration Type
-    |--------------------------------------------------------------------------
-    */
+    const officeSelect = document.getElementById('officeSelect');
+    const otherOfficeField = document.getElementById('otherOfficeField');
+    const otherOfficeInput = document.getElementById('otherOfficeInput');
 
     function updateRegistrationType() {
         if (studentType?.checked) {
-            // Student
             idNumberLabel.textContent = 'Student ID No.';
             idNumber.required = true;
 
@@ -27,7 +24,6 @@ document.addEventListener('DOMContentLoaded', function () {
             courseSelect.required = true;
 
         } else if (visitorType?.checked) {
-            // Visitor
             idNumberLabel.textContent = 'Visitor ID No.';
             idNumber.required = false;
 
@@ -37,18 +33,32 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function updateOfficeSelection() {
+        const isOthers = officeSelect?.value === 'others';
+
+        if (isOthers) {
+            otherOfficeField?.classList.remove('hidden');
+
+            if (otherOfficeInput) {
+                otherOfficeInput.required = true;
+            }
+        } else {
+            otherOfficeField?.classList.add('hidden');
+
+            if (otherOfficeInput) {
+                otherOfficeInput.required = false;
+                otherOfficeInput.value = '';
+            }
+        }
+    }
+
     studentType?.addEventListener('change', updateRegistrationType);
     visitorType?.addEventListener('change', updateRegistrationType);
 
-    // Restore the correct fields if validation fails
+    officeSelect?.addEventListener('change', updateOfficeSelection);
+
     updateRegistrationType();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Submit Button
-    |--------------------------------------------------------------------------
-    */
+    updateOfficeSelection();
 
     if (!form || !button) return;
 
@@ -76,9 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     fill="currentColor"
                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z">
                 </path>
-
             </svg>
-
             Processing...
         `;
     });

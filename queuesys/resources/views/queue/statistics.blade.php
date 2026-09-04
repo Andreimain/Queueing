@@ -124,7 +124,7 @@
             {{-- Total --}}
             <div class="bg-white border rounded-xl p-5 shadow-sm">
                 <p class="text-sm text-gray-500">
-                    Total Tickets
+                    Total Visitors
                 </p>
 
                 <p class="text-3xl font-bold mt-2">
@@ -208,7 +208,7 @@
             {{-- Total --}}
             <div class="bg-white border rounded-xl p-5 shadow-sm">
                 <p class="text-sm text-gray-500">
-                    Total Tickets
+                    Total Visitors
                 </p>
 
                 <p class="text-3xl font-bold mt-2">
@@ -276,7 +276,7 @@
                             </th>
 
                             <th class="p-4 text-center">
-                                Total Tickets
+                                No. of Visitors
                             </th>
 
                             <th class="p-4 text-center">

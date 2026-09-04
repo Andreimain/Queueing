@@ -32,7 +32,7 @@
                             </svg>
                         </x-slot>
                     </x-stats-card>
-                    <x-stats-card key="visitorsToday" title="Tickets Made Today" :value="$visitorsToday">
+                    <x-stats-card key="visitorsToday" title="Visitors Today" :value="$visitorsToday">
                         <x-slot name="icon">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

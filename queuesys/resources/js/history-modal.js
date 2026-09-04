@@ -16,15 +16,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 btn.dataset.transfers || "[]"
             );
 
-            const registrationOfficeId = Number(
-                btn.dataset.registrationOfficeId
-            );
+            const registrationOfficeIdRaw =
+                btn.dataset.registrationOfficeId;
+
+            const registrationOfficeId =
+                registrationOfficeIdRaw !== undefined &&
+                registrationOfficeIdRaw !== null &&
+                registrationOfficeIdRaw !== ""
+                    ? Number(registrationOfficeIdRaw)
+                    : null;
 
             const registrationOffice =
                 btn.dataset.registrationOffice || "—";
 
+            const isOtherRegistration =
+                registrationOfficeId === null;
+
             const isStaff = window.isStaff === true;
-            const staffOfficeId = Number(window.staffOfficeId);
+            const staffOfficeId =
+                window.staffOfficeId !== null &&
+                window.staffOfficeId !== undefined
+                    ? Number(window.staffOfficeId)
+                    : null;
 
             mName.textContent =
                 btn.dataset.name || "—";
@@ -35,126 +48,115 @@ document.addEventListener("DOMContentLoaded", () => {
             timelineEl.innerHTML = "";
 
             const events = [];
-
-            /*
-             * REGISTERED
-             */
-            if (
-                !isStaff ||
-                registrationOfficeId === staffOfficeId
-            ) {
-                const firstTicket = tickets[0];
-
-                if (firstTicket) {
-                    events.push({
-                        type: "registered",
-                        date: firstTicket.created_at,
-                        ticket: firstTicket.ticket_number,
-                        queue: firstTicket.queue_number,
-                        office: registrationOffice,
-                        officeId: registrationOfficeId
-                    });
-                }
-            }
-
-            /*
-             * TRANSFERS
-             */
-            transfers.forEach(transfer => {
-
-                const fromOfficeId =
-                    Number(transfer.from_office_id);
-
-                const toOfficeId =
-                    Number(transfer.to_office_id);
-
-                const belongsToStaff =
-                    fromOfficeId === staffOfficeId ||
-                    toOfficeId === staffOfficeId;
-
-                if (isStaff && !belongsToStaff) {
-                    return;
-                }
+            if (isOtherRegistration) {
 
                 events.push({
-                    type: "transferred",
-
+                    type: "other_registered",
                     date:
-                        transfer.transferred_at,
-
-                    fromOffice:
-                        transfer.from_office?.name ?? "—",
-
-                    toOffice:
-                        transfer.to_office?.name ?? "—",
-
-                    fromQueue:
-                        transfer.from_queue_number,
-
-                    toQueue:
-                        transfer.to_queue_number,
-
-                    transferredBy:
-                        transfer.transferred_by?.name ??
-                        "Unknown",
-
-                    fromOfficeId,
-                    toOfficeId
+                        btn.dataset.createdAt ||
+                        new Date().toISOString(),
+                    office: registrationOffice
                 });
-            });
 
-            /*
-             * FINAL STATUS
-             */
-            if (tickets.length) {
-
-                const final =
-                    tickets[tickets.length - 1];
-
-                const finalOfficeId =
-                    Number(final.office_id);
-
+            } else {
                 if (
                     !isStaff ||
-                    finalOfficeId === staffOfficeId
+                    registrationOfficeId === staffOfficeId
                 ) {
+                    const firstTicket = tickets[0];
+
+                    if (firstTicket) {
+                        events.push({
+                            type: "registered",
+                            date: firstTicket.created_at,
+                            ticket: firstTicket.ticket_number,
+                            queue: firstTicket.queue_number,
+                            office: registrationOffice,
+                            officeId: registrationOfficeId
+                        });
+                    }
+                }
+
+                transfers.forEach(transfer => {
+
+                    const fromOfficeId =
+                        Number(transfer.from_office_id);
+
+                    const toOfficeId =
+                        Number(transfer.to_office_id);
+
+                    const belongsToStaff =
+                        fromOfficeId === staffOfficeId ||
+                        toOfficeId === staffOfficeId;
+
+                    if (isStaff && !belongsToStaff) {
+                        return;
+                    }
+
                     events.push({
-                        type: final.status,
+                        type: "transferred",
+                        date: transfer.transferred_at,
 
-                        date:
-                            final.updated_at,
+                        fromOffice:
+                            transfer.from_office?.name ?? "—",
 
-                        ticket:
-                            final.ticket_number,
+                        toOffice:
+                            transfer.to_office?.name ?? "—",
 
-                        queue:
-                            final.queue_number,
+                        fromQueue:
+                            transfer.from_queue_number,
 
-                        office:
-                            final.office?.name ??
-                            registrationOffice,
+                        toQueue:
+                            transfer.to_queue_number,
 
-                        cashier:
-                            final.cashier?.name ??
-                            null,
+                        transferredBy:
+                            transfer.transferred_by?.name ??
+                            "Unknown",
 
-                        officeId:
-                            finalOfficeId
+                        fromOfficeId,
+                        toOfficeId
                     });
+                });
+
+                if (tickets.length) {
+
+                    const final =
+                        tickets[tickets.length - 1];
+
+                    const finalOfficeId =
+                        final.office_id !== null &&
+                        final.office_id !== undefined
+                            ? Number(final.office_id)
+                            : null;
+
+                    if (
+                        !isStaff ||
+                        finalOfficeId === staffOfficeId
+                    ) {
+                        events.push({
+                            type: final.status,
+                            date: final.updated_at,
+                            ticket: final.ticket_number,
+                            queue: final.queue_number,
+
+                            office:
+                                final.office?.name ??
+                                registrationOffice,
+
+                            cashier:
+                                final.cashier?.name ?? null,
+
+                            officeId: finalOfficeId
+                        });
+                    }
                 }
             }
 
-            /*
-             * SORT TIMELINE
-             */
             events.sort((a, b) =>
                 new Date(a.date) -
                 new Date(b.date)
             );
 
-            /*
-             * RENDER TIMELINE
-             */
             events.forEach((event, index) => {
 
                 const isLast =
@@ -169,16 +171,29 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     );
 
-                /*
-                 * Default
-                 */
                 let dotColor = "#9ca3af";
                 let title = "";
                 let content = "";
 
-                /*
-                 * REGISTERED
-                 */
+                if (event.type === "other_registered") {
+
+                    dotColor = "#9ca3af";
+                    title = "Registration Recorded";
+
+                    content = `
+                        <div class="text-sm text-gray-700">
+                            Office visited:
+                            <strong>
+                                ${event.office}
+                            </strong>
+                        </div>
+
+                        <div class="text-xs text-gray-500 mt-1">
+                            This registration did not join a queue.
+                        </div>
+                    `;
+                }
+
                 if (event.type === "registered") {
 
                     dotColor = "#9ca3af";
@@ -186,7 +201,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     content = `
                         <div class="text-sm text-gray-700">
-                            <strong>${event.ticket}</strong>
+                            <strong>
+                                ${event.ticket}
+                            </strong>
                             — Queue #${event.queue}
                         </div>
 
@@ -196,9 +213,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                 }
 
-                /*
-                 * TRANSFERRED
-                 */
                 if (event.type === "transferred") {
 
                     dotColor = "#3b82f6";
@@ -234,9 +248,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                 }
 
-                /*
-                 * DONE
-                 */
                 if (event.type === "done") {
 
                     dotColor = "#10b981";
@@ -244,7 +255,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     content = `
                         <div class="text-sm text-gray-700">
-                            <strong>${event.ticket}</strong>
+                            <strong>
+                                ${event.ticket}
+                            </strong>
                             — Queue #${event.queue}
                         </div>
 
@@ -261,9 +274,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                 }
 
-                /*
-                 * SKIPPED
-                 */
                 if (event.type === "skipped") {
 
                     dotColor = "#f59e0b";
@@ -271,7 +281,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     content = `
                         <div class="text-sm text-gray-700">
-                            <strong>${event.ticket}</strong>
+                            <strong>
+                                ${event.ticket}
+                            </strong>
                             — Queue #${event.queue}
                         </div>
 
@@ -288,9 +300,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                 }
 
-                /*
-                 * TIMELINE HTML
-                 */
                 timelineEl.innerHTML += `
                     <div class="flex gap-6 relative">
 
@@ -349,17 +358,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    /*
-     * CLOSE MODAL
-     */
     closeBtn.addEventListener("click", () => {
         modal.classList.add("hidden");
         modal.classList.remove("flex");
     });
 
-    /*
-     * CLOSE WHEN CLICKING BACKDROP
-     */
     modal.addEventListener("click", e => {
         if (e.target === modal) {
             modal.classList.add("hidden");

@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             datasets: [
                 {
-                    label: 'Tickets per Office',
+                    label: 'Visitors per Office',
                     data: counts,
                     borderWidth: 1,
                     borderRadius: 6
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     title: {
                         display: true,
-                        text: 'Number of Tickets'
+                        text: 'Number of Visitors'
                     }
                 }
             }
