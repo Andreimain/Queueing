@@ -2,7 +2,6 @@
     <div class="w-full max-w-md mx-auto bg-white p-8 rounded-lg shadow mt-10">
         <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Edit Staff</h1>
 
-        {{-- Validation Errors --}}
         @if ($errors->any())
             <div class="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">
                 <ul class="list-disc list-inside">
@@ -13,7 +12,6 @@
             </div>
         @endif
 
-        {{-- Success Message --}}
         @if (session('success'))
             <div class="mb-4 p-3 bg-green-100 text-green-700 rounded text-sm">
                 {{ session('success') }}
@@ -24,21 +22,18 @@
             @csrf
             @method('PUT')
 
-            <!-- Name -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Name</label>
                 <input type="text" name="name" required value="{{ old('name', $staff->name) }}"
                     class="mt-1 w-full p-2 border border-gray-300 rounded-md">
             </div>
 
-            <!-- Email -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Email</label>
                 <input type="email" name="email" required value="{{ old('email', $staff->email) }}"
                     class="mt-1 w-full p-2 border border-gray-300 rounded-md">
             </div>
 
-            <!-- Password -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">
                     Password <span class="text-gray-500 text-xs">(leave blank to keep current)</span>
@@ -46,39 +41,64 @@
                 <input type="password" name="password" class="mt-1 w-full p-2 border border-gray-300 rounded-md">
             </div>
 
-            <!-- Role -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Role</label>
-                <select name="role" required class="mt-1 w-full p-2 border border-gray-300 rounded-md">
-                    <option value="staff" {{ $staff->role === 'staff' ? 'selected' : '' }}>Staff</option>
-                    <option value="admin" {{ $staff->role === 'admin' ? 'selected' : '' }}>Admin</option>
-                </select>
-            </div>
+            @if (auth()->user()->isHead())
+                <input type="hidden" name="office_id" value="{{ auth()->user()->office_id }}">
 
-            <!-- Office -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Office</label>
-
-                @if ($staff->role === 'admin')
-                    <input type="text" value="N/A" disabled
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Role</label>
+                    <input type="text" value="Staff" disabled
                         class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-                    <input type="hidden" name="office_id" value="{{ $staff->office_id }}">
-                @else
-                    <select name="office_id" id="officeSelect" required
-                        class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
-                        <option value="" disabled selected>-- Select Office --</option>
+                </div>
 
-                        @foreach ($offices as $office)
-                            <option value="{{ $office->id }}" data-abbreviation="{{ $office->abbreviation }}"
-                                {{ $staff->office_id == $office->id ? 'selected' : '' }}>
-                                {{ $office->name }}
-                            </option>
-                        @endforeach
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Office</label>
+                    <select id="officeSelect" required
+                        class="mt-1 w-full border border-green-400 rounded p-2 bg-gray-100 focus:ring-green-500 focus:border-green-500">
+                        <option value="{{ auth()->user()->office_id }}"
+                            data-abbreviation="{{ auth()->user()->office->abbreviation }}" selected>
+                            {{ auth()->user()->office->name }}
+                        </option>
                     </select>
-                @endif
-            </div>
+                </div>
+            @else
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Role</label>
+                    <select name="role" required class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                        <option value="staff" {{ $staff->role === 'staff' ? 'selected' : '' }}>
+                            Staff
+                        </option>
+                        <option value="head" {{ $staff->role === 'head' ? 'selected' : '' }}>
+                            Head
+                        </option>
+                        <option value="admin" {{ $staff->role === 'admin' ? 'selected' : '' }}>
+                            Admin
+                        </option>
+                    </select>
+                </div>
 
-            <!-- Registrar Course Assignment -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Office</label>
+
+                    @if ($staff->role === 'admin')
+                        <input type="text" value="N/A" disabled
+                            class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
+                        <input type="hidden" name="office_id" value="">
+                    @else
+                        <select name="office_id" id="officeSelect" required
+                            class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="" disabled>-- Select Office --</option>
+
+                            @foreach ($offices as $office)
+                                <option value="{{ $office->id }}" data-abbreviation="{{ $office->abbreviation }}"
+                                    {{ $staff->office_id == $office->id ? 'selected' : '' }}>
+                                    {{ $office->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
+                </div>
+            @endif
+
             <div id="courseAssignment" class="hidden">
                 <label class="block text-sm font-medium text-green-700 mb-2">
                     Assign Courses
@@ -103,12 +123,12 @@
                 </p>
             </div>
 
-            <!-- Submit -->
             <button type="submit"
                 class="w-full bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700 transition">
                 Update Staff
             </button>
         </form>
     </div>
+
     @vite('resources/js/staff-management.js')
 </x-guest-layout>

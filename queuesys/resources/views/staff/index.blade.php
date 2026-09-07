@@ -10,10 +10,7 @@
     <div class="py-6">
         <div class="mx-auto w-full max-w-[95rem] sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-
                 <div class="grid grid-cols-1 md:grid-cols-[1fr_1.8fr] gap-10 items-start">
-
-                    {{-- Register New User --}}
                     <div class="bg-green-50 border border-green-200 rounded-lg p-6 shadow">
                         <h3 class="text-lg font-semibold text-green-700 mb-4">
                             Register New User
@@ -23,72 +20,69 @@
                               class="space-y-4" autocomplete="off">
                             @csrf
 
-                            {{-- Name --}}
                             <div>
                                 <label class="block text-sm font-medium text-green-700">
                                     Name
                                 </label>
                                 <input type="text" name="name" required
-                                    class="mt-1 w-full border border-green-400 rounded p-2
-                                           focus:ring-green-500 focus:border-green-500">
+                                    class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
                             </div>
 
-                            {{-- Email --}}
                             <div>
                                 <label class="block text-sm font-medium text-green-700">
                                     Email
                                 </label>
                                 <input type="email" name="email" required
-                                    class="mt-1 w-full border border-green-400 rounded p-2
-                                           focus:ring-green-500 focus:border-green-500">
+                                    class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
                             </div>
 
-                            {{-- Password --}}
                             <div>
                                 <label class="block text-sm font-medium text-green-700">
                                     Password
                                 </label>
                                 <input type="password" name="password" required
-                                    class="mt-1 w-full border border-green-400 rounded p-2
-                                           focus:ring-green-500 focus:border-green-500">
+                                    class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
                             </div>
 
-                            {{-- Office --}}
                             <div>
                                 <label class="block text-sm font-medium text-green-700">
                                     Office
                                 </label>
-                                <select name="office_id" id="officeSelect" required
-                                    class="mt-1 w-full border border-green-400 rounded p-2
-                                           focus:ring-green-500 focus:border-green-500">
-                                    <option value="" disabled selected>
-                                        -- Select Office --
-                                    </option>
 
-                                    @foreach ($offices as $office)
-                                        <option value="{{ $office->id }}"
-                                            data-abbreviation="{{ $office->abbreviation }}">
-                                            {{ $office->name }}
+                                <select name="office_id" id="officeSelect" required
+                                    class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
+                                    @if(auth()->user()->isHead())
+                                        <option value="{{ auth()->user()->office_id }}"
+                                            data-abbreviation="{{ auth()->user()->office->abbreviation }}">
+                                            {{ auth()->user()->office->name }}
                                         </option>
-                                    @endforeach
+                                    @else
+                                        <option value="" disabled selected>
+                                            -- Select Office --
+                                        </option>
+
+                                        @foreach ($offices as $office)
+                                            <option value="{{ $office->id }}"
+                                                data-abbreviation="{{ $office->abbreviation }}">
+                                                {{ $office->name }}
+                                            </option>
+                                        @endforeach
+                                    @endif
                                 </select>
                             </div>
 
-                            {{-- Registrar Course Assignment --}}
                             <div id="courseAssignment" class="hidden">
                                 <label class="block text-sm font-medium text-green-700 mb-2">
                                     Assign Courses
                                 </label>
 
-                                <div class="border border-green-300 rounded p-3 bg-white
-                                            max-h-48 overflow-y-auto space-y-2">
+                                <div class="border border-green-300 rounded p-3 bg-white max-h-48 overflow-y-auto space-y-2">
                                     @forelse ($courses as $course)
                                         <label class="flex items-center gap-2">
                                             <input type="checkbox"
                                                 name="courses[]"
                                                 value="{{ $course->id }}"
-                                                class="rounded border-green-400 text-green-600
-                                                       focus:ring-green-500">
+                                                class="rounded border-green-400 text-green-600 focus:ring-green-500">
 
                                             <span class="text-sm text-gray-700">
                                                 {{ $course->name }}
@@ -106,18 +100,15 @@
                                 </p>
                             </div>
 
-                            {{-- Submit --}}
                             <div class="pt-2">
                                 <button type="submit"
-                                    class="py-2 px-4 rounded shadow font-semibold text-sm text-white
-                                           bg-green-600 hover:bg-green-700 transition">
+                                    class="py-2 px-4 rounded shadow font-semibold text-sm text-white bg-green-600 hover:bg-green-700 transition">
                                     Add User
                                 </button>
                             </div>
                         </form>
                     </div>
 
-                    {{-- User List --}}
                     <div class="bg-green-50 border border-green-200 rounded-lg p-6 shadow">
                         <h3 class="text-lg font-semibold text-green-700 mb-4">
                             User List
@@ -156,7 +147,6 @@
                                 <tbody class="text-black">
                                     @forelse ($staff as $person)
                                         <tr class="hover:bg-green-100">
-
                                             <td class="px-4 py-2 border border-green-300 truncate"
                                                 title="{{ $person->name }}">
                                                 {{ $person->name }}
@@ -179,8 +169,7 @@
                                             <td class="px-4 py-2 border border-green-300 text-center">
                                                 <div class="flex justify-center items-center gap-2">
                                                     <a href="{{ route('staff.edit', $person->id) }}"
-                                                        class="py-1 px-3 rounded shadow text-sm font-semibold
-                                                               text-white bg-orange-500 hover:bg-orange-600">
+                                                        class="py-1 px-3 rounded shadow text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600">
                                                         Edit
                                                     </a>
 
@@ -191,8 +180,7 @@
                                                         @method('DELETE')
 
                                                         <button type="submit"
-                                                            class="py-1 px-3 rounded shadow text-sm font-semibold
-                                                                   text-white bg-red-600 hover:bg-red-700">
+                                                            class="py-1 px-3 rounded shadow text-sm font-semibold text-white bg-red-600 hover:bg-red-700">
                                                             Delete
                                                         </button>
                                                     </form>
@@ -215,7 +203,6 @@
                             {{ $staff->links() }}
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>

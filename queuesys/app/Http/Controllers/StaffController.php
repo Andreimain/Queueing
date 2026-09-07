@@ -10,40 +10,53 @@ use Illuminate\Support\Facades\Hash;
 
 class StaffController extends Controller
 {
-    /**
-     * Show staff list + registration form
-     */
     public function index()
     {
-        $staff = User::with(['office', 'courses'])->paginate(7);
-        $offices = Office::all();
+        $user = auth()->user();
+
+        if ($user->isHead()) {
+            $staff = User::with(['office', 'courses'])
+                ->where('office_id', $user->office_id)
+                ->where('role', 'staff')
+                ->paginate(7);
+
+            $offices = Office::where('id', $user->office_id)->get();
+        } else {
+            $staff = User::with(['office', 'courses'])->paginate(7);
+            $offices = Office::all();
+        }
+
         $courses = Course::orderBy('name')->get();
 
         return view('staff.index', compact('staff', 'offices', 'courses'));
     }
 
-
-    /**
-     * Store a newly created staff user
-     */
     public function store(Request $request)
     {
+        $user = auth()->user();
+
         $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|string|email|unique:users',
-            'password'  => 'required|string|min:6',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|unique:users',
+            'password' => 'required|string|min:6',
             'office_id' => 'required|exists:offices,id',
             'courses' => 'nullable|array',
             'courses.*' => 'exists:courses,id',
         ]);
 
+        if ($user->isHead() && (int) $request->office_id !== (int) $user->office_id) {
+            abort(403);
+        }
+
         $staff = User::create([
-            'name'      => $request->name,
-            'email'     => $request->email,
-            'password'  => Hash::make($request->password),
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
             'role' => 'staff',
             'office_id' => $request->office_id,
         ]);
+
+        $staff->load('office');
 
         if ($staff->office?->abbreviation === 'RO') {
             $staff->courses()->sync($request->input('courses', []));
@@ -54,43 +67,79 @@ class StaffController extends Controller
             ->with('success', 'Staff registered successfully.');
     }
 
-    /**
-     * Show the form to edit a staff member
-     */
     public function edit($id)
     {
+        $user = auth()->user();
         $staff = User::with('courses')->findOrFail($id);
-        $offices = Office::all();
+
+        if ($user->isHead()) {
+            if (
+                $staff->role !== 'staff' ||
+                (int) $staff->office_id !== (int) $user->office_id
+            ) {
+                abort(403);
+            }
+
+            $offices = Office::where('id', $user->office_id)->get();
+        } else {
+            $offices = Office::all();
+        }
+
         $courses = Course::orderBy('name')->get();
 
         return view('staff.edit_staff', compact('staff', 'offices', 'courses'));
     }
 
-    /**
-     * Update staff info
-     */
     public function update(Request $request, $id)
     {
+        $user = auth()->user();
         $staff = User::findOrFail($id);
 
-        $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users,email,' . $staff->id,
-            'password' => 'nullable|string|min:6',
-            'role' => 'required|in:staff,admin',
-            'office_id' => 'nullable|exists:offices,id',
-            'courses' => 'nullable|array',
-            'courses.*' => 'exists:courses,id',
-        ]);
+        if ($user->isHead()) {
+            if (
+                $staff->role !== 'staff' ||
+                (int) $staff->office_id !== (int) $user->office_id
+            ) {
+                abort(403);
+            }
 
-        $staff->name  = $request->name;
-        $staff->email = $request->email;
-        $staff->role  = $request->role;
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|unique:users,email,' . $staff->id,
+                'password' => 'nullable|string|min:6',
+                'office_id' => 'required|exists:offices,id',
+                'courses' => 'nullable|array',
+                'courses.*' => 'exists:courses,id',
+            ]);
 
-        if ($request->role === 'admin') {
-            $staff->office_id = null;
+            if ((int) $request->office_id !== (int) $user->office_id) {
+                abort(403);
+            }
+
+            $staff->name = $request->name;
+            $staff->email = $request->email;
+            $staff->role = 'staff';
+            $staff->office_id = $user->office_id;
         } else {
-            $staff->office_id = $request->office_id;
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|unique:users,email,' . $staff->id,
+                'password' => 'nullable|string|min:6',
+                'role' => 'required|in:staff,head,admin',
+                'office_id' => 'nullable|exists:offices,id',
+                'courses' => 'nullable|array',
+                'courses.*' => 'exists:courses,id',
+            ]);
+
+            $staff->name = $request->name;
+            $staff->email = $request->email;
+            $staff->role = $request->role;
+
+            if ($request->role === 'admin') {
+                $staff->office_id = null;
+            } else {
+                $staff->office_id = $request->office_id;
+            }
         }
 
         if ($request->filled('password')) {
@@ -108,17 +157,26 @@ class StaffController extends Controller
         } else {
             $staff->courses()->detach();
         }
+
         return redirect()
             ->route('staff.index')
             ->with('success', 'Staff updated successfully.');
     }
 
-    /**
-     * Delete a staff member
-     */
     public function destroy($id)
     {
+        $user = auth()->user();
         $staff = User::findOrFail($id);
+
+        if ($user->isHead()) {
+            if (
+                $staff->role !== 'staff' ||
+                (int) $staff->office_id !== (int) $user->office_id
+            ) {
+                abort(403);
+            }
+        }
+
         $staff->delete();
 
         return redirect()

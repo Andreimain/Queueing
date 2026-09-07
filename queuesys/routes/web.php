@@ -49,7 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/statistics', [OfficeQueueController::class, 'statistics'])->name('queue.statistics');
 
     // Staff Management
-    Route::prefix('staff')->middleware('admin')->group(function () {
+    Route::prefix('staff')->middleware('admin.head')->group(function () {
         Route::get('/', [StaffController::class, 'index'])->name('staff.index');
         Route::post('/', [StaffController::class, 'store'])->name('staff.store');
         Route::get('/{id}/edit', [StaffController::class, 'edit'])->name('staff.edit');
