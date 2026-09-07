@@ -49,7 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/statistics', [OfficeQueueController::class, 'statistics'])->name('queue.statistics');
 
     // Staff Management
-    Route::prefix('staff')->group(function () {
+    Route::prefix('staff')->middleware('admin')->group(function () {
         Route::get('/', [StaffController::class, 'index'])->name('staff.index');
         Route::post('/', [StaffController::class, 'store'])->name('staff.store');
         Route::get('/{id}/edit', [StaffController::class, 'edit'])->name('staff.edit');
@@ -57,7 +57,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
     });
 
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/offices/create', [OfficeController::class, 'create'])->name('offices.create');
         Route::post('/offices', [OfficeController::class, 'store'])->name('offices.store');
         Route::put('/offices/{office}', [OfficeController::class, 'update'])->name('offices.update');
