@@ -10,10 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const combinedMonth = document.getElementById('combinedMonth');
 
     const submitFilters = () => {
-        const year = yearSelect.value;
-        const month = monthSelect.value;
-
-        combinedMonth.value = `${year}-${month}`;
+        combinedMonth.value = `${yearSelect.value}-${monthSelect.value}`;
         form.submit();
     };
 
@@ -30,21 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (monthSelect) {
-        monthSelect.addEventListener('change', () => {
-            submitFilters();
-        });
+        monthSelect.addEventListener('change', submitFilters);
     }
 
     if (yearSelect) {
-        yearSelect.addEventListener('change', () => {
-            submitFilters();
-        });
+        yearSelect.addEventListener('change', submitFilters);
     }
 
     if (weekSelect) {
-        weekSelect.addEventListener('change', () => {
-            submitFilters();
-        });
+        weekSelect.addEventListener('change', submitFilters);
     }
 
     const canvas = document.getElementById('statsChart');
@@ -55,71 +46,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const {
         role,
-        range,
         labels,
         counts,
+        totalRegistrations,
         totalTickets,
         completed,
         skipped,
-        transferred
+        transferred,
+        students,
+        visitors
     } = window.statisticsData;
 
     if (role === 'staff') {
         new Chart(canvas, {
             type: 'bar',
-
             data: {
                 labels: [
+                    'Total Registrations',
                     'Total Tickets',
-                    'Completed',
+                    'Complete',
                     'Skipped',
-                    'Transferred'
+                    'Transferred',
+                    'Students',
+                    'Visitors'
                 ],
-
-                datasets: [
-                    {
-                        label: 'Tickets',
-                        data: [
-                            totalTickets,
-                            completed,
-                            skipped,
-                            transferred
-                        ],
-                        borderWidth: 1,
-                        borderRadius: 6
-                    }
-                ]
+                datasets: [{
+                    label: 'Statistics',
+                    data: [
+                        totalRegistrations,
+                        totalTickets,
+                        completed,
+                        skipped,
+                        transferred,
+                        students,
+                        visitors
+                    ],
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
             },
-
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-
                 plugins: {
                     legend: {
                         display: true
                     },
-
                     tooltip: {
                         callbacks: {
-                            label: function (context) {
-                                return ` ${context.raw} ticket(s)`;
-                            }
+                            label: context => ` ${context.raw}`
                         }
                     }
                 },
-
                 scales: {
                     y: {
                         beginAtZero: true,
-
                         ticks: {
                             precision: 0
                         },
-
                         title: {
                             display: true,
-                            text: 'Number of Tickets'
+                            text: 'Number'
                         }
                     }
                 }
@@ -131,49 +118,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     new Chart(canvas, {
         type: 'bar',
-
         data: {
             labels,
-
-            datasets: [
-                {
-                    label: 'Visitors per Office',
-                    data: counts,
-                    borderWidth: 1,
-                    borderRadius: 6
-                }
-            ]
+            datasets: [{
+                label: 'Registrations',
+                data: counts,
+                borderWidth: 1,
+                borderRadius: 6
+            }]
         },
-
         options: {
             responsive: true,
             maintainAspectRatio: false,
-
             plugins: {
                 legend: {
                     display: true
                 },
-
                 tooltip: {
                     callbacks: {
-                        label: function (context) {
-                            return ` ${context.raw} ticket(s)`;
-                        }
+                        label: context => ` ${context.raw} registration(s)`
                     }
                 }
             },
-
             scales: {
                 y: {
                     beginAtZero: true,
-
                     ticks: {
                         precision: 0
                     },
-
                     title: {
                         display: true,
-                        text: 'Number of Visitors'
+                        text: 'Number of Registrations'
+                    }
+                },
+                x: {
+                    ticks: {
+                        autoSkip: false
                     }
                 }
             }

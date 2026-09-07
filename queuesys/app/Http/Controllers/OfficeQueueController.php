@@ -612,477 +612,350 @@ class OfficeQueueController extends Controller
     }
     public function statistics(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         $range = $request->get('range', 'weekly');
+        $selectedMonth = $request->get('month', now()->format('Y-m'));
 
         if (!in_array($range, ['weekly', 'monthly'])) {
             $range = 'weekly';
         }
 
-        $selectedMonth = $request->get(
-            'month',
-            now('Asia/Manila')->format('Y-m')
-        );
-
-        if (!preg_match('/^\d{4}-\d{2}$/', $selectedMonth)) {
-            $selectedMonth = now('Asia/Manila')->format('Y-m');
+        try {
+            $selectedDate = Carbon::createFromFormat('Y-m', $selectedMonth);
+        } catch (\Exception $e) {
+            $selectedDate = now();
+            $selectedMonth = now()->format('Y-m');
         }
 
-        $monthStart = Carbon::createFromFormat(
-            'Y-m',
-            $selectedMonth,
-            'Asia/Manila'
-        )->startOfMonth();
+        $selectedYear = $selectedDate->year;
+        $selectedMonthNumber = $selectedDate->month;
 
-        $monthEnd = $monthStart->copy()->endOfMonth();
+        $months = collect(range(1, 12))->mapWithKeys(function ($month) {
+            return [$month => Carbon::create()->month($month)->format('F')];
+        });
 
-        $selectedYear = (int) $monthStart->format('Y');
-        $selectedMonthNumber = $monthStart->format('m');
-
-        $months = [
-            '01' => 'January',
-            '02' => 'February',
-            '03' => 'March',
-            '04' => 'April',
-            '05' => 'May',
-            '06' => 'June',
-            '07' => 'July',
-            '08' => 'August',
-            '09' => 'September',
-            '10' => 'October',
-            '11' => 'November',
-            '12' => 'December',
-        ];
-
-        $currentYear = now('Asia/Manila')->year;
-
-        $years = range(
-            $currentYear - 2,
-            $currentYear + 2
-        );
+        $years = range(now()->year - 2, now()->year + 1);
 
         $weeks = [];
-
-        $current = $monthStart->copy();
-        $weekNumber = 1;
-
-        while ($current->lte($monthEnd)) {
-
-            $weekStart = $current->copy();
-
-            $weekEnd = $current
-                ->copy()
-                ->endOfWeek(Carbon::SUNDAY);
-
-            if ($weekEnd->gt($monthEnd)) {
-                $weekEnd = $monthEnd->copy();
-            }
-
-            $weeks[$weekNumber] = [
-                'start' => $weekStart->copy(),
-                'end' => $weekEnd->copy(),
-            ];
-
-            $current = $weekEnd->copy()->addDay();
-
-            $weekNumber++;
-        }
-
         $selectedWeek = (int) $request->get('week', 1);
 
-        if (!isset($weeks[$selectedWeek])) {
-            $selectedWeek = 1;
-        }
-
         if ($range === 'weekly') {
+            $firstDay = Carbon::create(
+                $selectedYear,
+                $selectedMonthNumber,
+                1
+            );
 
-            $start = $weeks[$selectedWeek]['start']
+            $lastDay = $firstDay->copy()->endOfMonth();
+
+            $weekStart = $firstDay->copy()->startOfWeek(Carbon::MONDAY);
+            $weekNumber = 1;
+
+            while ($weekStart->lte($lastDay)) {
+                $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+
+                if ($weekEnd->gt($lastDay)) {
+                    $weekEnd = $lastDay->copy();
+                }
+
+                $weekStartForPeriod = $weekStart->lt($firstDay)
+                    ? $firstDay->copy()
+                    : $weekStart->copy();
+
+                $weeks[$weekNumber] = [
+                    'start' => $weekStartForPeriod,
+                    'end' => $weekEnd,
+                ];
+
+                $weekStart->addWeek();
+                $weekNumber++;
+            }
+
+            if (!isset($weeks[$selectedWeek])) {
+                $selectedWeek = 1;
+            }
+
+            $periodStart = $weeks[$selectedWeek]['start']
                 ->copy()
                 ->startOfDay();
 
-            $end = $weeks[$selectedWeek]['end']
+            $periodEnd = $weeks[$selectedWeek]['end']
                 ->copy()
                 ->endOfDay();
         } else {
+            $periodStart = Carbon::create(
+                $selectedYear,
+                $selectedMonthNumber,
+                1
+            )->startOfDay();
 
-            $start = $monthStart
+            $periodEnd = $periodStart
                 ->copy()
-                ->startOfDay();
-
-            $end = $monthEnd
-                ->copy()
+                ->endOfMonth()
                 ->endOfDay();
         }
 
-        $visitorsQuery = Visitor::with([
-            'transfers',
-        ])->where(function ($query) use ($start, $end) {
+        $isStaff = $user &&
+            method_exists($user, 'isStaff') &&
+            $user->isStaff();
 
-            $query
-                ->whereBetween('created_at', [$start, $end])
-                ->orWhereHas('transfers', function ($transferQuery) use ($start, $end) {
-                    $transferQuery->whereBetween(
-                        'transferred_at',
-                        [$start, $end]
-                    );
-                });
-        });
+        $isAdmin = $user &&
+            method_exists($user, 'isAdmin') &&
+            $user->isAdmin();
 
-        if ($user->isStaff()) {
-
+        if ($isStaff) {
             $officeId = $user->office_id;
 
-            $visitors = $visitorsQuery
-                ->where(function ($query) use ($officeId) {
-
-                    $query
-                        ->where('office_id', $officeId)
-
-                        ->orWhereHas('transfers', function ($transferQuery) use ($officeId) {
-
-                            $transferQuery
-                                ->where('from_office_id', $officeId)
-                                ->orWhere('to_office_id', $officeId);
-                        });
-                })
+            $officeTickets = Visitor::where('office_id', $officeId)
+                ->whereNotNull('ticket_number')
+                ->whereBetween('created_at', [$periodStart, $periodEnd])
                 ->get();
 
-            $officeTickets = $visitors
-                ->filter(function ($visitor) use ($officeId) {
+            $transferredTickets = VisitorTransfer::where('from_office_id', $officeId)
+                ->whereColumn('from_office_id', '!=', 'to_office_id')
+                ->whereBetween('transferred_at', [$periodStart, $periodEnd])
+                ->with('visitor')
+                ->get();
 
-                    if ((int) $visitor->office_id === (int) $officeId) {
-                        return true;
-                    }
+            $totalTickets = $officeTickets->count() + $transferredTickets->count();
+            $completed = $officeTickets->where('status', 'done')->count();
+            $skipped = $officeTickets->where('status', 'skipped')->count();
+            $transferred = $transferredTickets->count();
 
-                    return $visitor->transfers->contains(function ($transfer) use ($officeId) {
+            $students = $officeTickets->where('type', 'student')->count() + $transferredTickets->filter(function ($transfer) {
+                return $transfer->visitor && $transfer->visitor->type === 'student';
+            })->count();
 
-                        return
-                            (int) $transfer->from_office_id === (int) $officeId ||
-                            (int) $transfer->to_office_id === (int) $officeId;
-                    });
-                })
-
-                ->unique('ticket_number')
-                ->values();
-
-            $totalTickets = $officeTickets->count();
-            $completed = $officeTickets
-                ->filter(function ($visitor) use ($officeId) {
-
-                    return
-                        $visitor->status === 'done' &&
-                        (int) $visitor->office_id === (int) $officeId;
-                })
-                ->unique('ticket_number')
-                ->count();
-
-            $skipped = $officeTickets
-                ->filter(function ($visitor) use ($officeId) {
-
-                    return
-                        $visitor->status === 'skipped' &&
-                        (int) $visitor->office_id === (int) $officeId;
-                })
-                ->unique('ticket_number')
-                ->count();
-
-            $transferred = $officeTickets
-                ->filter(function ($visitor) use ($officeId, $start, $end) {
-
-                    $wasTransferred = $visitor->transfers->contains(function ($transfer) use ($start, $end) {
-
-                        if (!$transfer->transferred_at) {
-                            return false;
-                        }
-
-                        $transferredAt = Carbon::parse(
-                            $transfer->transferred_at,
-                            'Asia/Manila'
-                        );
-
-                        return $transferredAt->between(
-                            $start,
-                            $end
-                        );
-                    });
-
-                    if (!$wasTransferred) {
-                        return false;
-                    }
-
-                    if (
-                        (int) $visitor->office_id === (int) $officeId &&
-                        in_array($visitor->status, ['done', 'skipped'])
-                    ) {
-                        return false;
-                    }
-
-                    return true;
-                })
-                ->unique('ticket_number')
-                ->count();
-
-            $students = $officeTickets
-                ->where('type', 'student')
-                ->unique('ticket_number')
-                ->count();
-
-            $visitorsCount = $officeTickets
-                ->where('type', 'visitor')
-                ->unique('ticket_number')
-                ->count();
+            $visitorsCount = $officeTickets->where('type', 'visitor')->count() + $transferredTickets->filter(function ($transfer) {
+                return $transfer->visitor && $transfer->visitor->type === 'visitor';
+            })->count();
 
             $labels = [];
             $counts = [];
 
             if ($range === 'weekly') {
+                $current = $periodStart->copy()->startOfDay();
 
-                $current = $start->copy()->startOfDay();
-
-                while ($current->lte($end)) {
-
+                while ($current->lte($periodEnd)) {
                     $dayStart = $current->copy()->startOfDay();
                     $dayEnd = $current->copy()->endOfDay();
 
-                    $dayTickets = $officeTickets
-                        ->filter(function ($visitor) use ($dayStart, $dayEnd) {
+                    $normalCount = Visitor::where('office_id', $officeId)
+                        ->whereNotNull('ticket_number')
+                        ->whereBetween('created_at', [$dayStart, $dayEnd])
+                        ->count();
 
-                            $created = Carbon::parse(
-                                $visitor->created_at,
-                                'Asia/Manila'
-                            );
+                    $transferCount = VisitorTransfer::where('from_office_id', $officeId)
+                        ->whereBetween('transferred_at', [$dayStart, $dayEnd])
+                        ->count();
 
-                            return $created->between(
-                                $dayStart,
-                                $dayEnd
-                            );
-                        })
-                        ->unique('ticket_number');
-
-                    $labels[] = $current->format('D');
-                    $counts[] = $dayTickets->count();
-
+                    $labels[] = $current->format('M j');
+                    $counts[] = $normalCount + $transferCount;
                     $current->addDay();
                 }
             } else {
+                $current = $periodStart->copy()->startOfWeek(Carbon::MONDAY);
+                $week = 1;
 
-                foreach ($weeks as $weekNumber => $week) {
+                while ($current->lte($periodEnd)) {
+                    $weekStart = $current->copy()->startOfDay();
+                    $weekEnd = $current->copy()->endOfWeek(Carbon::SUNDAY);
 
-                    $weekStart = $week['start']
-                        ->copy()
-                        ->startOfDay();
+                    if ($weekEnd->gt($periodEnd)) {
+                        $weekEnd = $periodEnd->copy()->endOfDay();
+                    }
 
-                    $weekEnd = $week['end']
-                        ->copy()
-                        ->endOfDay();
+                    $normalCount = Visitor::where('office_id', $officeId)
+                        ->whereNotNull('ticket_number')
+                        ->whereBetween('created_at', [$weekStart, $weekEnd])
+                        ->count();
 
-                    $weekTickets = $officeTickets
-                        ->filter(function ($visitor) use ($weekStart, $weekEnd) {
+                    $transferCount = VisitorTransfer::where('from_office_id', $officeId)
+                        ->whereBetween('transferred_at', [$weekStart, $weekEnd])
+                        ->count();
 
-                            $created = Carbon::parse(
-                                $visitor->created_at,
-                                'Asia/Manila'
-                            );
-
-                            return $created->between(
-                                $weekStart,
-                                $weekEnd
-                            );
-                        })
-                        ->unique('ticket_number');
-
-                    $labels[] = 'Week ' . $weekNumber;
-                    $counts[] = $weekTickets->count();
+                    $labels[] = "Week {$week}";
+                    $counts[] = $normalCount + $transferCount;
+                    $current->addWeek();
+                    $week++;
                 }
             }
 
-            return view('queue.statistics', [
+            $officeData = collect();
+            $registrationLabels = [];
+            $registrationCounts = [];
+            $totalRegistrations = 0;
+            $others = 0;
 
-                'role' => 'staff',
-
-                'range' => $range,
-
-                'selectedMonth' => $selectedMonth,
-                'selectedMonthNumber' => $selectedMonthNumber,
-                'selectedYear' => $selectedYear,
-
-                'months' => $months,
-                'years' => $years,
-
-                'weeks' => $weeks,
-                'selectedWeek' => $selectedWeek,
-
-                'periodStart' => $start,
-                'periodEnd' => $end,
-
-                'totalTickets' => $totalTickets,
-                'completed' => $completed,
-                'skipped' => $skipped,
-                'transferred' => $transferred,
-
-                'students' => $students,
-                'visitorsCount' => $visitorsCount,
-
-                'labels' => $labels,
-                'counts' => $counts,
-            ]);
+            return view('queue.statistics', compact(
+                'range',
+                'months',
+                'weeks',
+                'years',
+                'selectedMonth',
+                'selectedMonthNumber',
+                'selectedWeek',
+                'selectedYear',
+                'periodStart',
+                'periodEnd',
+                'totalRegistrations',
+                'totalTickets',
+                'completed',
+                'skipped',
+                'transferred',
+                'students',
+                'visitorsCount',
+                'officeData',
+                'labels',
+                'counts',
+                'registrationLabels',
+                'registrationCounts',
+                'others'
+            ))->with('role', 'staff');
         }
 
-        if ($user->isAdmin()) {
+        $registrationQuery = Visitor::query()
+            ->whereBetween('created_at', [
+                $periodStart,
+                $periodEnd,
+            ]);
 
-            $offices = Office::orderBy('name')->get();
+        $registrations = $registrationQuery->get();
+        $offices = Office::orderBy('name')->get();
 
-            $visitors = $visitorsQuery->get();
+        $officeData = $offices->map(function ($office) use (
+            $periodStart,
+            $periodEnd
+        ) {
+            $registrations = Visitor::where('office_id', $office->id)
+                ->whereBetween('created_at', [
+                    $periodStart,
+                    $periodEnd,
+                ])
+                ->get();
 
-            $officeData = $offices->map(function ($office) use (
-                $visitors,
-                $start,
-                $end
-            ) {
-                $officeTickets = $visitors
-                    ->filter(function ($visitor) use ($office) {
+            $tickets = Visitor::where('office_id', $office->id)
+                ->whereNotNull('ticket_number')
+                ->whereBetween('created_at', [
+                    $periodStart,
+                    $periodEnd,
+                ])
+                ->get();
 
-                        if ((int) $visitor->office_id === (int) $office->id) {
-                            return true;
-                        }
-
-                        return $visitor->transfers->contains(function ($transfer) use ($office) {
-
-                            return
-                                (int) $transfer->from_office_id === (int) $office->id ||
-                                (int) $transfer->to_office_id === (int) $office->id;
-                        });
-                    })
-                    ->unique('ticket_number')
-                    ->values();
-
-                $totalTickets = $officeTickets->count();
-                $completed = $officeTickets
-                    ->filter(function ($visitor) use ($office) {
-
-                        return
-                            $visitor->status === 'done' &&
-                            (int) $visitor->office_id === (int) $office->id;
-                    })
-                    ->unique('ticket_number')
-                    ->count();
-
-                $skipped = $officeTickets
-                    ->filter(function ($visitor) use ($office) {
-
-                        return
-                            $visitor->status === 'skipped' &&
-                            (int) $visitor->office_id === (int) $office->id;
-                    })
-                    ->unique('ticket_number')
-                    ->count();
-
-                $transferred = $officeTickets
-                    ->filter(function ($visitor) use (
-                        $office,
-                        $start,
-                        $end
-                    ) {
-
-                        $wasTransferred = $visitor->transfers->contains(function ($transfer) use (
-                            $start,
-                            $end
-                        ) {
-
-                            if (!$transfer->transferred_at) {
-                                return false;
-                            }
-
-                            $transferredAt = Carbon::parse(
-                                $transfer->transferred_at,
-                                'Asia/Manila'
-                            );
-
-                            return $transferredAt->between(
-                                $start,
-                                $end
-                            );
-                        });
-
-                        if (!$wasTransferred) {
-                            return false;
-                        }
-
-                        if (
-                            (int) $visitor->office_id === (int) $office->id &&
-                            in_array($visitor->status, ['done', 'skipped'])
-                        ) {
-                            return false;
-                        }
-
-                        return true;
-                    })
-                    ->unique('ticket_number')
-                    ->count();
-
-                $students = $officeTickets
+            return [
+                'office' => $office->name,
+                'isOther' => false,
+                'totalRegistrations' => $registrations->count(),
+                'total' => $tickets->count(),
+                'completed' => $tickets
+                    ->where('status', 'done')
+                    ->count(),
+                'skipped' => $tickets
+                    ->where('status', 'skipped')
+                    ->count(),
+                'transferred' => $tickets
+                    ->where('status', 'transferred')
+                    ->count(),
+                'students' => $registrations
                     ->where('type', 'student')
-                    ->unique('ticket_number')
-                    ->count();
-
-                $visitorCount = $officeTickets
+                    ->count(),
+                'visitors' => $registrations
                     ->where('type', 'visitor')
-                    ->unique('ticket_number')
-                    ->count();
+                    ->count(),
+            ];
+        });
 
+        $otherData = $registrations
+            ->whereNull('office_id')
+            ->groupBy(function ($visitor) {
+                return trim($visitor->other_office ?? 'Unknown');
+            })
+            ->map(function ($records, $officeName) {
                 return [
-                    'office' => $office->name,
-                    'total' => $totalTickets,
-                    'completed' => $completed,
-                    'skipped' => $skipped,
-                    'transferred' => $transferred,
-                    'students' => $students,
-                    'visitors' => $visitorCount,
+                    'office' => $officeName,
+                    'isOther' => true,
+                    'totalRegistrations' => $records->count(),
+                    'total' => 0,
+                    'completed' => 0,
+                    'skipped' => 0,
+                    'transferred' => 0,
+                    'students' => $records
+                        ->where('type', 'student')
+                        ->count(),
+                    'visitors' => $records
+                        ->where('type', 'visitor')
+                        ->count(),
                 ];
-            });
+            })
+            ->values();
 
-            $adminTotalTickets = $officeData->sum('total');
-            $adminCompleted = $officeData->sum('completed');
-            $adminSkipped = $officeData->sum('skipped');
-            $adminTransferred = $officeData->sum('transferred');
-            $adminStudents = $officeData->sum('students');
-            $adminVisitors = $officeData->sum('visitors');
+        $officeData = $officeData
+            ->concat($otherData)
+            ->values();
 
-            return view('queue.statistics', [
+        $registrationLabels = $officeData
+            ->pluck('office')
+            ->values()
+            ->toArray();
 
-                'role' => 'admin',
+        $registrationCounts = $officeData
+            ->pluck('totalRegistrations')
+            ->values()
+            ->toArray();
 
-                'range' => $range,
+        $totalRegistrations = $officeData
+            ->sum('totalRegistrations');
 
-                'selectedMonth' => $selectedMonth,
-                'selectedMonthNumber' => $selectedMonthNumber,
-                'selectedYear' => $selectedYear,
+        $totalTickets = $officeData
+            ->sum('total');
 
-                'months' => $months,
-                'years' => $years,
+        $completed = $officeData
+            ->sum('completed');
 
-                'weeks' => $weeks,
-                'selectedWeek' => $selectedWeek,
+        $skipped = $officeData
+            ->sum('skipped');
 
-                'periodStart' => $start,
-                'periodEnd' => $end,
+        $transferred = $officeData
+            ->sum('transferred');
 
-                'officeData' => $officeData,
+        $students = $officeData
+            ->sum('students');
 
-                'officeLabels' => $officeData->pluck('office'),
-                'officeCounts' => $officeData->pluck('total'),
+        $visitorsCount = $officeData
+            ->sum('visitors');
 
-                'totalTickets' => $adminTotalTickets,
-                'completed' => $adminCompleted,
-                'skipped' => $adminSkipped,
-                'transferred' => $adminTransferred,
-                'students' => $adminStudents,
-                'visitorsCount' => $adminVisitors,
-            ]);
-        }
+        $others = $otherData
+            ->sum('totalRegistrations');
 
-        abort(403);
+        $labels = [];
+        $counts = [];
+
+        return view('queue.statistics', [
+            'range' => $range,
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'selectedMonthNumber' => $selectedMonthNumber,
+            'selectedWeek' => $selectedWeek,
+            'months' => $months,
+            'years' => $years,
+            'weeks' => $weeks,
+            'periodStart' => $periodStart,
+            'periodEnd' => $periodEnd,
+            'totalRegistrations' => $totalRegistrations,
+            'totalTickets' => $totalTickets,
+            'completed' => $completed,
+            'skipped' => $skipped,
+            'transferred' => $transferred,
+            'students' => $students,
+            'visitorsCount' => $visitorsCount,
+            'others' => $others,
+            'labels' => $labels,
+            'counts' => $counts,
+            'registrationLabels' => $registrationLabels,
+            'registrationCounts' => $registrationCounts,
+            'officeData' => $officeData,
+        ])->with('role', 'admin');
     }
 
     public function callAgain($officeId)
