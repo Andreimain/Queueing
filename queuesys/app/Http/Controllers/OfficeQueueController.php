@@ -696,15 +696,17 @@ class OfficeQueueController extends Controller
                 ->endOfDay();
         }
 
-        $isStaff = $user &&
-            method_exists($user, 'isStaff') &&
-            $user->isStaff();
+        $isStaffOrHead = $user &&
+            (
+                (method_exists($user, 'isStaff') && $user->isStaff()) ||
+                (method_exists($user, 'isHead') && $user->isHead())
+            );
 
         $isAdmin = $user &&
             method_exists($user, 'isAdmin') &&
             $user->isAdmin();
 
-        if ($isStaff) {
+        if ($isStaffOrHead) {
             $officeId = $user->office_id;
 
             $officeTickets = Visitor::where('office_id', $officeId)
@@ -812,7 +814,7 @@ class OfficeQueueController extends Controller
                 'registrationLabels',
                 'registrationCounts',
                 'others'
-            ))->with('role', 'staff');
+            ))->with('role', $user->isHead() ? 'head' : 'staff');
         }
 
         $registrationQuery = Visitor::query()

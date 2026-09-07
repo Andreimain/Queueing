@@ -57,12 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         visitors
     } = window.statisticsData;
 
-    if (role === 'staff') {
+    if (role === 'staff' || role === 'head') {
         new Chart(canvas, {
             type: 'bar',
             data: {
                 labels: [
-                    'Total Registrations',
                     'Total Tickets',
                     'Complete',
                     'Skipped',
@@ -73,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Statistics',
                     data: [
-                        totalRegistrations,
                         totalTickets,
                         completed,
                         skipped,

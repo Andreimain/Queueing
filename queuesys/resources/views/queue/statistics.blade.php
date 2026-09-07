@@ -36,7 +36,7 @@
         <p class="text-lg font-semibold text-gray-800">{{ $periodStart->format('M j, Y') }} <span class="text-gray-400 mx-1">–</span> {{ $periodEnd->format('M j, Y') }}</p>
     </div>
 
-    @if ($role === 'staff')
+    @if (in_array($role, ['staff', 'head']))
         <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div class="bg-white border rounded-xl p-5 shadow-sm">
                 <p class="text-sm text-gray-500 h-10 flex items-start">Total no. of Tickets</p>
