@@ -13,68 +13,75 @@
                 </div>
 
                 <div class="hidden sm:-my-px sm:ms-10 sm:flex space-x-8 items-center">
-                    <!-- Queues -->
-                    @if(Auth::user()->isAdmin())
-                        <div x-data="{ show: false }" class="relative group" @mouseenter="show = true" @mouseleave="show = false">
-                            <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-emerald-700 focus:outline-none transition">
-                                Queues
-                                <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
 
-                            <div x-show="show" x-cloak x-transition:enter="transition ease-out duration-100"
-                                x-transition:enter-start="transform opacity-0 scale-95"
-                                x-transition:enter-end="transform opacity-100 scale-100"
-                                x-transition:leave="transition ease-in duration-75"
-                                x-transition:leave-start="transform opacity-100 scale-100"
-                                x-transition:leave-end="transform opacity-0 scale-95"
-                                class="absolute mt-2 w-56 bg-white/90 backdrop-blur-md shadow-xl rounded-xl z-50 border border-emerald-100 overflow-hidden">
-                                <div class="py-1">
-                                    @foreach($offices as $office)
-                                        <a href="{{ route('office.queue', $office->id) }}"
-                                            class="block px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
-                                            {{ $office->name }}
-                                        </a>
-                                    @endforeach
+                    @if(Auth::user()->isGuard())
+                        {{-- Guard navigation --}}
+
+                    @else
+                        {{-- Queue navigation --}}
+                        @if(Auth::user()->isAdmin())
+                            <div x-data="{ show: false }" class="relative group" @mouseenter="show = true" @mouseleave="show = false">
+                                <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-emerald-700 focus:outline-none transition">
+                                    Queues
+                                    <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                <div x-show="show" x-cloak x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="transform opacity-0 scale-95"
+                                    x-transition:enter-end="transform opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="transform opacity-100 scale-100"
+                                    x-transition:leave-end="transform opacity-0 scale-95"
+                                    class="absolute mt-2 w-56 bg-white/90 backdrop-blur-md shadow-xl rounded-xl z-50 border border-emerald-100 overflow-hidden">
+                                    <div class="py-1">
+                                        @foreach($offices as $office)
+                                            <a href="{{ route('office.queue', $office->id) }}"
+                                                class="block px-4 py-3 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
+                                                {{ $office->name }}
+                                            </a>
+                                        @endforeach
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    @else
-                        @if(Auth::user()->office_id)
-                            <x-nav-link :href="route('office.queue', Auth::user()->office_id)">
-                                Queues
+                        @else
+                            @if(Auth::user()->office_id)
+                                <x-nav-link :href="route('office.queue', Auth::user()->office_id)">
+                                    Queues
+                                </x-nav-link>
+                            @endif
+                        @endif
+
+                        {{-- View Skipped --}}
+                        <x-nav-link :href="route('skipped.list')" :active="request()->routeIs('skipped.list')">
+                            {{ __('View Skipped') }}
+                        </x-nav-link>
+
+                        {{-- Manage Users --}}
+                        @if(Auth::user()->isAdmin() || Auth::user()->isHead())
+                            <x-nav-link :href="route('staff.index')" :active="request()->routeIs('staff.index')">
+                                {{ __('Manage Users') }}
                             </x-nav-link>
                         @endif
-                    @endif
 
-                    <!-- View Skipped -->
-                    <x-nav-link :href="route('skipped.list')" :active="request()->routeIs('skipped.list')">
-                        {{ __('View Skipped') }}
-                    </x-nav-link>
-
-                    <!-- Manage Users -->
-                    @if(Auth::user()->isAdmin() || Auth::user()->isHead())
-                        <x-nav-link :href="route('staff.index')" :active="request()->routeIs('staff.index')">
-                            {{ __('Manage Users') }}
-                        </x-nav-link>
-                    @endif
-
-                    <!-- Manage Office -->
-                    @if(Auth::user()->isAdmin())
-                        <x-nav-link :href="route('admin.offices.create')" :active="request()->routeIs('admin.offices.create')">
-                            {{ __('Manage Office') }}
-                        </x-nav-link>
+                        {{-- Manage Office --}}
+                        @if(Auth::user()->isAdmin())
+                            <x-nav-link :href="route('admin.offices.create')" :active="request()->routeIs('admin.offices.create')">
+                                {{ __('Manage Office') }}
+                            </x-nav-link>
+                        @endif
                     @endif
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
+            {{-- Settings Dropdown --}}
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
                             <div>{{ Auth::user()->name }}</div>
+
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd"
@@ -92,6 +99,7 @@
 
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
+
                             <x-dropdown-link :href="route('logout')"
                                 onclick="event.preventDefault(); this.closest('form').submit();">
                                 {{ __('Log Out') }}
@@ -101,15 +109,24 @@
                 </x-dropdown>
             </div>
 
-            <!-- Hamburger -->
+            {{-- Hamburger --}}
             <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none transition duration-150 ease-in-out">
+                <button @click="open = ! open"
+                    class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none transition duration-150 ease-in-out">
+
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{ 'hidden': open, 'inline-flex': !open }" class="inline-flex"
-                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        <path :class="{ 'hidden': open, 'inline-flex': !open }"
+                            class="inline-flex"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
                             d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{ 'hidden': !open, 'inline-flex': open }" class="hidden"
-                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+
+                        <path :class="{ 'hidden': !open, 'inline-flex': open }"
+                            class="hidden"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>

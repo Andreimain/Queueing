@@ -70,6 +70,9 @@
                         <option value="head" {{ $staff->role === 'head' ? 'selected' : '' }}>
                             Head
                         </option>
+                        <option value="guard" {{ $staff->role === 'guard' ? 'selected' : '' }}>
+                            Guard
+                        </option>
                         <option value="admin" {{ $staff->role === 'admin' ? 'selected' : '' }}>
                             Admin
                         </option>

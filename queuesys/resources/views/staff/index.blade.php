@@ -46,6 +46,28 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-green-700">
+                                    Role
+                                </label>
+
+                                @if(auth()->user()->isHead())
+                                    <input type="hidden" name="role" value="staff">
+
+                                    <input type="text" value="Staff" disabled
+                                        class="mt-1 w-full border border-green-400 rounded p-2 bg-gray-100 text-gray-600">
+                                @else
+                                    <select name="role" id="roleSelect" required
+                                        class="mt-1 w-full border border-green-400 rounded p-2 focus:ring-green-500 focus:border-green-500">
+                                        <option value="" disabled selected>-- Select Role --</option>
+                                        <option value="staff">Staff</option>
+                                        <option value="head">Head</option>
+                                        <option value="guard">Guard</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                @endif
+                            </div>
+
+                            <div id="officeContainer">
+                                <label class="block text-sm font-medium text-green-700">
                                     Office
                                 </label>
 

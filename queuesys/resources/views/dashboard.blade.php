@@ -2,6 +2,7 @@
     <x-slot name="title">
         Dashboard
     </x-slot>
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Dashboard') }}
@@ -23,15 +24,17 @@
                             </svg>
                         </x-slot>
                     </x-stats-card>
+
                     <x-stats-card key="totalStaff" title="Total Staff" :value="$totalStaff">
                         <x-slot name="icon">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
                                 </path>
                             </svg>
                         </x-slot>
                     </x-stats-card>
+
                     <x-stats-card key="visitorsToday" title="Visitors Today" :value="$visitorsToday">
                         <x-slot name="icon">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,11 +44,13 @@
                             </svg>
                         </x-slot>
                     </x-stats-card>
+
                     <x-stats-card key="activeQueues" title="Active Queues" :value="$activeQueues">
                         <x-slot name="icon">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
                             </svg>
                         </x-slot>
                     </x-stats-card>
@@ -56,6 +61,7 @@
                         <h3 class="text-lg font-semibold text-gray-800">Live Queue Summary</h3>
                         <x-badge color="emerald">Live</x-badge>
                     </div>
+
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left">
                             <thead class="text-xs text-gray-500 uppercase bg-gray-50/50">
@@ -65,16 +71,21 @@
                                     <th class="px-6 py-3 font-medium text-right">Status</th>
                                 </tr>
                             </thead>
+
                             <tbody id="queueTableBody" class="divide-y divide-gray-100">
                                 @foreach ($offices as $office)
                                     <tr class="hover:bg-gray-50/50 transition-colors">
-                                        <td class="px-6 py-4 font-medium text-gray-900">{{ $office->name }}</td>
+                                        <td class="px-6 py-4 font-medium text-gray-900">
+                                            {{ $office->name }}
+                                        </td>
+
                                         <td class="px-6 py-4 text-center">
                                             <span
                                                 class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-sm font-medium {{ $office->waiting_count > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600' }}">
                                                 {{ $office->waiting_count }}
                                             </span>
                                         </td>
+
                                         <td class="px-6 py-4 text-right">
                                             @if ($office->waiting_count > 5)
                                                 <span class="text-xs text-amber-600 font-medium">Busy</span>
@@ -97,6 +108,7 @@
                             <h3 class="text-lg font-semibold text-gray-800">
                                 Visitor Logs
                             </h3>
+
                             <p class="text-sm text-gray-500 mt-1">
                                 View all past queue records, transactions, and visitor activity.
                             </p>
@@ -104,7 +116,6 @@
 
                         <a href="{{ route('queue.history') }}"
                             class="inline-flex items-center px-5 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition">
-
                             View History
 
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,12 +125,14 @@
                         </a>
                     </div>
                 </x-card>
+
                 <x-card>
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800">
                                 Statistics
                             </h3>
+
                             <p class="text-sm text-gray-500 mt-1">
                                 View visitor trends and office activity reports for this week.
                             </p>
@@ -127,7 +140,6 @@
 
                         <a href="{{ route('queue.statistics') }}"
                             class="inline-flex items-center px-5 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition">
-
                             View Statistics
 
                             <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,22 +150,104 @@
                     </div>
                 </x-card>
 
-            @else
-                <!-- Staff Dashboard -->
-                @php $office = Auth::user()->office; @endphp
+            @elseif (Auth::user()->isGuard())
+                <!-- Guard Dashboard -->
                 <x-card>
                     <div class="flex items-center justify-between mb-6">
                         <div>
-                            <h3 class="text-xl font-bold text-gray-900">Welcome, {{ Auth::user()->name }}</h3>
+                            <h3 class="text-xl font-bold text-gray-900">
+                                Welcome, {{ Auth::user()->name }}
+                            </h3>
+
+                            <p class="text-gray-500 mt-1">
+                                Guard Dashboard
+                            </p>
+                        </div>
+
+                        <div class="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-9.618 3.04A12.02 12.02 0 003 12c0 5.591 3.824 10.29 9 11.622C17.176 22.29 21 17.591 21 12c0-1.042-.133-2.052-.382-3.016z">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <a href="{{ route('guard.visitors') }}"
+                            class="block bg-emerald-50 rounded-xl p-6 border border-emerald-100 hover:bg-emerald-100 transition">
+                            <div class="flex items-center gap-4">
+                                <div class="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0c0 5-4.03 9-9 9s-9-4-9-9 4.03-9 9-9 9 4 9 9z">
+                                        </path>
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-lg font-semibold text-emerald-700">
+                                        Visitor Monitoring
+                                    </h4>
+
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Monitor visitors currently waiting or being served.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('guard.history') }}"
+                            class="block bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:bg-gray-50 transition">
+                            <div class="flex items-center gap-4">
+                                <div class="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
+                                        </path>
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-lg font-semibold text-gray-800">
+                                        Visitor History
+                                    </h4>
+
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        View previous visitor transactions and activity.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </x-card>
+
+            @else
+                <!-- Staff Dashboard -->
+                @php $office = Auth::user()->office; @endphp
+
+                <x-card>
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900">
+                                Welcome, {{ Auth::user()->name }}
+                            </h3>
+
                             @if ($office)
-                                <p class="text-gray-500 mt-1">Assigned to: <span
-                                        class="font-medium text-emerald-600">{{ $office->name }}</span></p>
+                                <p class="text-gray-500 mt-1">
+                                    Assigned to:
+                                    <span class="font-medium text-emerald-600">
+                                        {{ $office->name }}
+                                    </span>
+                                </p>
                             @else
-                                <p class="text-red-500 mt-1">No office assigned.</p>
+                                <p class="text-red-500 mt-1">
+                                    No office assigned.
+                                </p>
                             @endif
                         </div>
-                        <div
-                            class="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+
+                        <div class="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z">
@@ -165,41 +259,63 @@
                     @if ($office)
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             <div class="bg-emerald-50 rounded-xl p-6 text-center border border-emerald-100">
-                                <p class="text-sm font-medium text-emerald-600 uppercase tracking-wider">Currently
-                                    Serving</p>
-                                <p id="currentServing" class="mt-2 text-4xl font-bold text-emerald-700">—</p>
+                                <p class="text-sm font-medium text-emerald-600 uppercase tracking-wider">
+                                    Currently Serving
+                                </p>
+
+                                <p id="currentServing" class="mt-2 text-4xl font-bold text-emerald-700">
+                                    —
+                                </p>
                             </div>
+
                             <div class="bg-white rounded-xl p-6 text-center border border-gray-100 shadow-sm">
-                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Waiting</p>
-                                <p id="waitingCount" class="mt-2 text-3xl font-bold text-gray-900">0</p>
+                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                                    Waiting
+                                </p>
+
+                                <p id="waitingCount" class="mt-2 text-3xl font-bold text-gray-900">
+                                    0
+                                </p>
                             </div>
+
                             <div class="bg-white rounded-xl p-6 text-center border border-gray-100 shadow-sm">
-                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Skipped</p>
-                                <p id="skippedCount" class="mt-2 text-3xl font-bold text-gray-900">0</p>
+                                <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                                    Skipped
+                                </p>
+
+                                <p id="skippedCount" class="mt-2 text-3xl font-bold text-gray-900">
+                                    0
+                                </p>
                             </div>
                         </div>
 
                         <div class="flex justify-end">
                             <a href="{{ route('office.queue', $office->id) }}"
                                 class="inline-flex items-center px-6 py-3 bg-emerald-600 border border-transparent rounded-xl font-semibold text-white hover:bg-emerald-700 focus:bg-emerald-700 active:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-lg shadow-emerald-200">
+
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z">
                                     </path>
+
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                    </path>
                                 </svg>
+
                                 Manage Queue
                             </a>
                         </div>
                     @endif
                 </x-card>
+
                 <x-card>
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800">
                                 Visitor Logs
                             </h3>
+
                             <p class="text-sm text-gray-500 mt-1">
                                 View all past queue records, transactions, and visitor activity.
                             </p>
@@ -217,12 +333,14 @@
                         </a>
                     </div>
                 </x-card>
+
                 <x-card>
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800">
                                 Statistics
                             </h3>
+
                             <p class="text-sm text-gray-500 mt-1">
                                 View visitor trends and office activity reports for this week.
                             </p>
@@ -240,7 +358,6 @@
                         </a>
                     </div>
                 </x-card>
-
             @endif
 
         </div>

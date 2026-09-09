@@ -22,7 +22,7 @@ class StaffController extends Controller
 
             $offices = Office::where('id', $user->office_id)->get();
         } else {
-            $staff = User::with(['office', 'courses'])->paginate(7);
+            $staff = User::with(['office', 'courses'])->paginate(8);
             $offices = Office::all();
         }
 
@@ -39,32 +39,52 @@ class StaffController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users',
             'password' => 'required|string|min:6',
-            'office_id' => 'required|exists:offices,id',
+            'role' => 'required|in:staff,head,guard,admin',
+            'office_id' => 'nullable|exists:offices,id',
             'courses' => 'nullable|array',
             'courses.*' => 'exists:courses,id',
         ]);
 
-        if ($user->isHead() && (int) $request->office_id !== (int) $user->office_id) {
-            abort(403);
+        if ($user->isHead()) {
+            if ($request->role !== 'staff') {
+                abort(403);
+            }
+
+            if ((int) $request->office_id !== (int) $user->office_id) {
+                abort(403);
+            }
+        }
+
+        if (in_array($request->role, ['guard', 'admin'])) {
+            $officeId = null;
+        } else {
+            if (!$request->office_id) {
+                abort(422, 'Office is required for Staff and Head users.');
+            }
+
+            $officeId = $request->office_id;
         }
 
         $staff = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'staff',
-            'office_id' => $request->office_id,
+            'role' => $request->role,
+            'office_id' => $officeId,
         ]);
 
         $staff->load('office');
 
-        if ($staff->office?->abbreviation === 'RO') {
+        if (
+            $staff->role === 'staff' &&
+            $staff->office?->abbreviation === 'RO'
+        ) {
             $staff->courses()->sync($request->input('courses', []));
         }
 
         return redirect()
             ->route('staff.index')
-            ->with('success', 'Staff registered successfully.');
+            ->with('success', 'User registered successfully.');
     }
 
     public function edit($id)
@@ -125,7 +145,7 @@ class StaffController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|unique:users,email,' . $staff->id,
                 'password' => 'nullable|string|min:6',
-                'role' => 'required|in:staff,head,admin',
+                'role' => 'required|in:staff,head,guard,admin',
                 'office_id' => 'nullable|exists:offices,id',
                 'courses' => 'nullable|array',
                 'courses.*' => 'exists:courses,id',
@@ -135,9 +155,13 @@ class StaffController extends Controller
             $staff->email = $request->email;
             $staff->role = $request->role;
 
-            if ($request->role === 'admin') {
+            if (in_array($request->role, ['guard', 'admin'])) {
                 $staff->office_id = null;
             } else {
+                if (!$request->office_id) {
+                    abort(422, 'Office is required for Staff and Head users.');
+                }
+
                 $staff->office_id = $request->office_id;
             }
         }
@@ -160,7 +184,7 @@ class StaffController extends Controller
 
         return redirect()
             ->route('staff.index')
-            ->with('success', 'Staff updated successfully.');
+            ->with('success', 'User updated successfully.');
     }
 
     public function destroy($id)
@@ -181,6 +205,6 @@ class StaffController extends Controller
 
         return redirect()
             ->route('staff.index')
-            ->with('success', 'Staff deleted successfully.');
+            ->with('success', 'User deleted successfully.');
     }
 }
