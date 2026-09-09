@@ -103,12 +103,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         toOffice:
                             transfer.to_office?.name ?? "—",
 
-                        fromQueue:
-                            transfer.from_queue_number,
-
-                        toQueue:
-                            transfer.to_queue_number,
-
                         transferredBy:
                             transfer.transferred_by?.name ??
                             "Unknown",
@@ -204,7 +198,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             <strong>
                                 ${event.ticket}
                             </strong>
-                            — Queue #${event.queue}
                         </div>
 
                         <div class="text-xs text-gray-500 mt-1">
@@ -230,16 +223,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
 
                         <div class="text-xs text-gray-500 mt-1">
-                            Queue #${event.fromQueue}
-
-                            <span class="mx-1">
-                                →
-                            </span>
-
-                            Queue #${event.toQueue}
-                        </div>
-
-                        <div class="text-xs text-gray-500 mt-1">
                             Transferred by:
                             <strong>
                                 ${event.transferredBy}
@@ -258,7 +241,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             <strong>
                                 ${event.ticket}
                             </strong>
-                            — Queue #${event.queue}
                         </div>
 
                         <div class="text-xs text-gray-500 mt-1">
@@ -284,7 +266,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             <strong>
                                 ${event.ticket}
                             </strong>
-                            — Queue #${event.queue}
                         </div>
 
                         <div class="text-xs text-gray-500 mt-1">
