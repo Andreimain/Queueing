@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\GuardController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Models\Office;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,12 @@ Route::get('/monitor/{office}/data', [OfficeQueueController::class, 'monitorData
 // Visitor Queue Registration (Public)
 Route::get('/register-queue', [VisitorController::class, 'create'])->name('visitor.create');
 Route::post('/register-queue', [VisitorController::class, 'store'])->name('visitor.store');
+
+Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
+    ->name('google.redirect');
+
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
+    ->name('google.callback');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
