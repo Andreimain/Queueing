@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Visitor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class GuardController extends Controller
 {
@@ -75,13 +76,14 @@ class GuardController extends Controller
                 'id',
                 'ticket_number',
                 'name',
+                'id_number',
+                'photo_path',
                 'office_id',
-                'cashier_id',
+                'other_office',
                 'status',
             ])
             ->with([
                 'office:id,name',
-                'cashier:id,name',
             ])
             ->where('type', 'visitor')
             ->whereIn('status', ['waiting', 'serving'])
@@ -91,14 +93,36 @@ class GuardController extends Controller
                 return [
                     'id' => $visitor->id,
                     'ticket_number' => $visitor->ticket_number,
-                    'name' => $visitor->name,
-                    'office' => $visitor->office?->name,
-                    'cashier' => $visitor->cashier?->name,
+                    'id_number' => $visitor->id_number,
+                    'photo' => $visitor->photo_path
+                        ? route('guard.visitors.photo', $visitor)
+                        : null,
+                    'office' => $visitor->office?->name
+                        ?? $visitor->other_office
+                        ?? 'N/A',
                     'status' => $visitor->status,
                 ];
             })
             ->values();
 
         return response()->json($visitors);
+    }
+
+    public function photo(Visitor $visitor)
+    {
+        abort_unless(
+            $visitor->type === 'visitor',
+            404
+        );
+
+        abort_unless(
+            $visitor->photo_path &&
+                Storage::exists($visitor->photo_path),
+            404
+        );
+
+        return Storage::response(
+            $visitor->photo_path
+        );
     }
 }

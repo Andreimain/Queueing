@@ -26,13 +26,8 @@
             </div>
         @endif
 
-        <form
-            id="visitorForm"
-            method="POST"
-            action="{{ route('visitor.store') }}"
-            class="space-y-5"
-            autocomplete="off"
-        >
+        <form id="visitorForm" method="POST" action="{{ route('visitor.store') }}" enctype="multipart/form-data"
+            class="space-y-5" autocomplete="off">
             @csrf
 
             {{-- Registration Type --}}
@@ -45,16 +40,10 @@
 
                     {{-- Student --}}
                     <label
-                        class="flex items-center gap-2 p-3 border border-emerald-300 rounded-md cursor-pointer hover:bg-emerald-50 transition"
-                    >
-                        <input
-                            type="radio"
-                            name="type"
-                            value="student"
-                            id="studentType"
+                        class="flex items-center gap-2 p-3 border border-emerald-300 rounded-md cursor-pointer hover:bg-emerald-50 transition">
+                        <input type="radio" name="type" value="student" id="studentType"
                             class="text-emerald-600 focus:ring-emerald-500"
-                            {{ old('type') === 'student' ? 'checked' : '' }}
-                        >
+                            {{ old('type') === 'student' ? 'checked' : '' }}>
 
                         <span class="text-sm font-medium text-emerald-800">
                             Student
@@ -63,16 +52,10 @@
 
                     {{-- Visitor --}}
                     <label
-                        class="flex items-center gap-2 p-3 border border-emerald-300 rounded-md cursor-pointer hover:bg-emerald-50 transition"
-                    >
-                        <input
-                            type="radio"
-                            name="type"
-                            value="visitor"
-                            id="visitorType"
+                        class="flex items-center gap-2 p-3 border border-emerald-300 rounded-md cursor-pointer hover:bg-emerald-50 transition">
+                        <input type="radio" name="type" value="visitor" id="visitorType"
                             class="text-emerald-600 focus:ring-emerald-500"
-                            {{ old('type') === 'visitor' ? 'checked' : '' }}
-                        >
+                            {{ old('type') === 'visitor' ? 'checked' : '' }}>
 
                         <span class="text-sm font-medium text-emerald-800">
                             Visitor
@@ -88,15 +71,10 @@
                     Full Name
                 </label>
 
-                <input
-                    type="text"
-                    name="name"
-                    required
-                    value="{{ old('name') }}"
+                <input type="text" name="name" required value="{{ old('name') }}"
                     class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
                            focus:ring-2 focus:ring-emerald-400
-                           focus:border-emerald-400 transition"
-                >
+                           focus:border-emerald-400 transition">
             </div>
 
             {{-- Contact Number --}}
@@ -105,35 +83,84 @@
                     Contact Number
                 </label>
 
-                <input
-                    type="text"
-                    name="contact_number"
-                    required
-                    value="{{ old('contact_number') }}"
+                <input type="text" name="contact_number" required value="{{ old('contact_number') }}"
                     class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
                            focus:ring-2 focus:ring-emerald-400
-                           focus:border-emerald-400 transition"
-                >
+                           focus:border-emerald-400 transition">
             </div>
 
             {{-- ID Number --}}
             <div>
-                <label
-                    id="idNumberLabel"
-                    class="block text-sm font-semibold text-emerald-800"
-                >
+                <label id="idNumberLabel" class="block text-sm font-semibold text-emerald-800">
                     ID Number
                 </label>
 
-                <input
-                    type="text"
-                    name="id_number"
-                    id="idNumber"
-                    value="{{ old('id_number') }}"
+                <input type="text" name="id_number" id="idNumber" value="{{ old('id_number') }}"
                     class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
                            focus:ring-2 focus:ring-emerald-400
-                           focus:border-emerald-400 transition"
-                >
+                           focus:border-emerald-400 transition">
+            </div>
+
+            {{-- Visitor Photo --}}
+            <div id="photoField" class="hidden">
+
+                <label class="block text-sm font-semibold text-emerald-800 mb-2">
+                    Visitor Photo
+                </label>
+
+                <p class="text-xs text-gray-500 mb-3">
+                    A photo is required for visitors.
+                </p>
+
+                {{-- Camera --}}
+                <div id="cameraContainer" class="hidden">
+
+                    <video id="cameraPreview" autoplay playsinline
+                        class="w-full aspect-video object-cover rounded-lg border border-emerald-300 bg-black"></video>
+
+                    <canvas id="photoCanvas" class="hidden"></canvas>
+
+                    <div class="grid grid-cols-2 gap-3 mt-3">
+
+                        <button type="button" id="capturePhotoButton"
+                            class="bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 transition">
+                            Take Photo
+                        </button>
+
+                        <button type="button" id="stopCameraButton"
+                            class="bg-gray-500 text-white font-semibold py-2.5 rounded-lg hover:bg-gray-600 transition">
+                            Cancel
+                        </button>
+
+                    </div>
+                </div>
+
+                {{-- Photo Preview --}}
+                <div id="photoPreviewContainer" class="hidden">
+
+                    <img id="photoPreview" src="" alt="Visitor photo preview"
+                        class="w-full aspect-square object-cover rounded-lg border border-emerald-300">
+
+                    <button type="button" id="retakePhotoButton"
+                        class="w-full mt-3 bg-gray-500 text-white font-semibold py-2.5 rounded-lg hover:bg-gray-600 transition">
+                        Retake Photo
+                    </button>
+
+                </div>
+
+                {{-- Open Camera --}}
+                <div id="photoOptions">
+
+                    <button type="button" id="openCameraButton"
+                        class="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white font-semibold py-2.5 rounded-lg hover:bg-emerald-700 transition">
+                        📷 Take Photo
+                    </button>
+
+                </div>
+
+                {{-- Captured Photo --}}
+                <input type="file" name="photo" id="photo" class="hidden" accept="image/jpeg">
+
             </div>
 
             {{-- Student Course --}}
@@ -142,22 +169,16 @@
                     Course
                 </label>
 
-                <select
-                    name="course_id"
-                    id="courseSelect"
+                <select name="course_id" id="courseSelect"
                     class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
                            focus:ring-2 focus:ring-emerald-400
-                           focus:border-emerald-400 transition"
-                >
+                           focus:border-emerald-400 transition">
                     <option value="" disabled selected>
                         -- Choose Course --
                     </option>
 
                     @foreach ($courses as $course)
-                        <option
-                            value="{{ $course->id }}"
-                            {{ old('course_id') == $course->id ? 'selected' : '' }}
-                        >
+                        <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>
                             {{ $course->name }}
                         </option>
                     @endforeach
@@ -170,72 +191,49 @@
                     Select Office
                 </label>
 
-                <select
-                    name="office_id"
-                    id="officeSelect"
-                    required
+                <select name="office_id" id="officeSelect" required
                     class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
                            focus:ring-2 focus:ring-emerald-400
-                           focus:border-emerald-400 transition"
-                >
-                    <option
-                        value=""
-                        disabled
-                        {{ old('office_id') ? '' : 'selected' }}
-                    >
+                           focus:border-emerald-400 transition">
+                    <option value="" disabled {{ old('office_id') ? '' : 'selected' }}>
                         -- Choose an office --
                     </option>
 
                     @foreach ($offices as $office)
-                        <option
-                            value="{{ $office->id }}"
-                            {{ old('office_id') == $office->id ? 'selected' : '' }}
-                        >
+                        <option value="{{ $office->id }}" {{ old('office_id') == $office->id ? 'selected' : '' }}>
                             {{ $office->name }}
                         </option>
                     @endforeach
 
-                    <option
-                        value="others"
-                        {{ old('office_id') === 'others' ? 'selected' : '' }}
-                    >
+                    <option value="others" {{ old('office_id') === 'others' ? 'selected' : '' }}>
                         Others
                     </option>
                 </select>
             </div>
 
-            <div
-                id="otherOfficeField"
-                class="{{ old('office_id') === 'others' ? '' : 'hidden' }}"
-            >
+            {{-- Other Office --}}
+            <div id="otherOfficeField" class="{{ old('office_id') === 'others' ? '' : 'hidden' }}">
                 <label class="block text-sm font-semibold text-emerald-800">
                     Specify Office
                 </label>
 
-                <input
-                    type="text"
-                    name="other_office"
-                    id="otherOfficeInput"
-                    value="{{ old('other_office') }}"
+                <input type="text" name="other_office" id="otherOfficeInput" value="{{ old('other_office') }}"
                     placeholder="e.g. Library"
                     class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
                            focus:ring-2 focus:ring-emerald-400
-                           focus:border-emerald-400 transition"
-                >
+                           focus:border-emerald-400 transition">
             </div>
 
             {{-- Submit --}}
             <div class="pt-4">
-                <button
-                    id="submitButton"
-                    type="submit"
+                <button id="submitButton" type="submit"
                     class="w-full flex items-center justify-center gap-2
                            bg-emerald-600 text-white font-semibold py-2.5
-                           rounded-lg hover:bg-emerald-700 transition"
-                >
+                           rounded-lg hover:bg-emerald-700 transition">
                     Register
                 </button>
             </div>
+
         </form>
     </div>
 

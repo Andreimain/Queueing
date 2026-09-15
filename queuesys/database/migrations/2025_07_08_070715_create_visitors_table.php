@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('contact_number');
             $table->string('id_number')->nullable();
+            $table->string('photo_path')->nullable();
             $table->unsignedBigInteger('office_id')->nullable();
             $table->string('other_office')->nullable();
             $table->unsignedBigInteger('previous_office_id')->nullable();

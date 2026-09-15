@@ -28,7 +28,28 @@ class VisitorController extends Controller
             'office_id' => 'required',
             'course_id' => 'nullable|exists:courses,id',
             'priority' => 'nullable|boolean',
+
+            'photo' => [
+                'required_if:type,visitor',
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
         ]);
+
+        $photoPath = null;
+
+        if (
+            $request->type === 'visitor' &&
+            $request->hasFile('photo')
+        ) {
+            $dateFolder = now()->format('Y-m-d');
+
+            $photoPath = $request->file('photo')->store(
+                "visitor-photos/{$dateFolder}"
+            );
+        }
 
         if ($request->office_id === 'others') {
 
@@ -40,6 +61,7 @@ class VisitorController extends Controller
                 'name' => $request->name,
                 'contact_number' => $request->contact_number,
                 'id_number' => $request->id_number,
+                'photo_path' => $photoPath,
                 'type' => $request->type,
 
                 'course_id' => $request->type === 'student'
@@ -115,6 +137,7 @@ class VisitorController extends Controller
             'name' => $request->name,
             'contact_number' => $request->contact_number,
             'id_number' => $request->id_number,
+            'photo_path' => $photoPath,
             'type' => $request->type,
 
             'course_id' => $request->type === 'student'

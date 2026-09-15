@@ -85,6 +85,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [GuardController::class, 'index'])->name('visitors');
         Route::get('/history', [GuardController::class, 'history'])->name('history');
         Route::get('/visitors/data', [GuardController::class, 'data'])->name('visitors.data');
+        Route::get('/visitors/{visitor}/photo', [GuardController::class, 'photo'])->name('visitors.photo');
     });
 });
 
