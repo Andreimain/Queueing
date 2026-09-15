@@ -187,6 +187,11 @@
             </table>
         </div>
 
+        {{-- Pagination --}}
+        <div class="mt-6">
+            {{ $history->links() }}
+        </div>
+
         {{-- Info Modal --}}
         <div id="infoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
             <div class="bg-gray-50 rounded-xl shadow-xl w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">

@@ -35,7 +35,7 @@
 
             <a href="{{ route('visitor.create') }}"
                class="px-6 py-2 bg-white text-emerald-700 font-semibold rounded-lg border border-emerald-300 hover:bg-emerald-100 transition">
-                ⟳ Register Another Visitor
+                ⟳ Register Another User
             </a>
         </div>
     </div>
