@@ -21,11 +21,31 @@ class OfficeQueueController extends Controller
         $office = Office::findOrFail($officeId);
         $user = Auth::user();
 
-        if ($user && method_exists($user, 'isStaff') && $user->isStaff() && $user->office_id !== $office->id) {
+        if ($user->isAdmin()) {
+            return $office;
+        }
+
+        if (
+            ($user->isHead() || $user->isStaff()) &&
+            (int) $user->office_id !== (int) $office->id
+        ) {
             abort(403, 'Unauthorized access to this office queue.');
         }
 
+        if (!$user->isHead() && !$user->isStaff()) {
+            abort(403);
+        }
+
         return $office;
+    }
+
+    private function authorizeQueueAction()
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->isStaff()) {
+            abort(403, 'You are not authorized to perform queue actions.');
+        }
     }
 
     // Show queue: all serving visitors + waiting list
@@ -83,6 +103,7 @@ class OfficeQueueController extends Controller
     // Assign the next waiting visitor to the logged-in cashier
     public function next($officeId)
     {
+        $this->authorizeQueueAction();
         $result = DB::transaction(function () use ($officeId) {
             $office = $this->authorizeOffice($officeId);
             $today = now()->toDateString();
@@ -168,6 +189,7 @@ class OfficeQueueController extends Controller
 
     public function markDone($officeId)
     {
+        $this->authorizeQueueAction();
         $result = DB::transaction(function () use ($officeId) {
             $office = $this->authorizeOffice($officeId);
             $today = now()->toDateString();
@@ -208,6 +230,7 @@ class OfficeQueueController extends Controller
     // Skip a visitor (either selected or currently served by this cashier)
     public function markSkip(Request $request, $officeId)
     {
+        $this->authorizeQueueAction();
         $result = DB::transaction(function () use ($request, $officeId) {
             $office = $this->authorizeOffice($officeId);
             $today = now()->toDateString();
@@ -281,7 +304,7 @@ class OfficeQueueController extends Controller
 
         $user = Auth::user();
 
-        if ($user && method_exists($user, 'isStaff') && $user->isStaff()) {
+        if ($user && ($user->isStaff() || $user->isHead())) {
             $query->where('office_id', $user->office_id);
         }
 
@@ -319,6 +342,7 @@ class OfficeQueueController extends Controller
     // Restore skipped visitors to waiting queue
     public function restoreSkipped(Request $request)
     {
+        $this->authorizeQueueAction();
         $ids = array_filter(
             explode(',', $request->input('selected_ids'))
         );
@@ -356,6 +380,7 @@ class OfficeQueueController extends Controller
 
     public function swapSkipped(Request $request)
     {
+        $this->authorizeQueueAction();
         $request->validate([
             'selected_id' => 'required|integer|exists:visitors,id',
         ]);
@@ -418,6 +443,7 @@ class OfficeQueueController extends Controller
 
     public function transfer(Request $request, $id)
     {
+        $this->authorizeQueueAction();
         $request->validate([
             'new_office_id' => 'required|exists:offices,id',
             'new_cashier_id' => 'nullable|exists:users,id',
@@ -538,12 +564,16 @@ class OfficeQueueController extends Controller
         $user = Auth::user();
 
         $isStaff = $user &&
-            method_exists($user, 'isStaff') &&
-            $user->isStaff();
+    method_exists($user, 'isStaff') &&
+    $user->isStaff();
 
-        $isAdmin = $user &&
-            method_exists($user, 'isAdmin') &&
-            $user->isAdmin();
+$isHead = $user &&
+    method_exists($user, 'isHead') &&
+    $user->isHead();
+
+$isAdmin = $user &&
+    method_exists($user, 'isAdmin') &&
+    $user->isAdmin();
 
         $query = Visitor::with([
             'office',
@@ -565,7 +595,7 @@ class OfficeQueueController extends Controller
                 ->orWhereNull('office_id');
         });
 
-        if ($isStaff) {
+        if ($isStaff || $isHead) {
             $query->where(function ($q) use ($user) {
                 $q->where('office_id', $user->office_id)
                     ->orWhereHas('transfers', function ($transferQuery) use ($user) {
@@ -709,7 +739,8 @@ class OfficeQueueController extends Controller
             'history' => $history,
             'isAdmin' => $isAdmin,
             'isStaff' => $isStaff,
-            'staffOfficeId' => $isStaff
+            'isHead' => $isHead,
+            'staffOfficeId' => ($isStaff || $isHead)
                 ? $user->office_id
                 : null,
         ]);
@@ -1232,6 +1263,7 @@ class OfficeQueueController extends Controller
 
     public function callAgain($officeId)
     {
+        $this->authorizeQueueAction();
         $office = $this->authorizeOffice($officeId);
         $today = now()->toDateString();
         $cashierId = Auth::id();

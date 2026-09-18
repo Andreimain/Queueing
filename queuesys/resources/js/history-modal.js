@@ -5,16 +5,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const mContact = document.getElementById("mContact");
     const timelineEl = document.getElementById("timeline");
 
-    document.querySelectorAll(".infoBtn").forEach(btn => {
+    const isStaff = window.isStaff === true;
+    const isHead = window.isHead === true;
+    const isDepartmentUser = isStaff || isHead;
+
+    const staffOfficeId =
+        window.staffOfficeId !== null &&
+        window.staffOfficeId !== undefined
+            ? Number(window.staffOfficeId)
+            : null;
+
+    document.querySelectorAll(".infoBtn").forEach((btn) => {
         btn.addEventListener("click", () => {
-
-            const tickets = JSON.parse(
-                btn.dataset.tickets || "[]"
-            );
-
-            const transfers = JSON.parse(
-                btn.dataset.transfers || "[]"
-            );
+            const tickets = JSON.parse(btn.dataset.tickets || "[]");
+            const transfers = JSON.parse(btn.dataset.transfers || "[]");
 
             const registrationOfficeIdRaw =
                 btn.dataset.registrationOfficeId;
@@ -32,13 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const isOtherRegistration =
                 registrationOfficeId === null;
 
-            const isStaff = window.isStaff === true;
-            const staffOfficeId =
-                window.staffOfficeId !== null &&
-                window.staffOfficeId !== undefined
-                    ? Number(window.staffOfficeId)
-                    : null;
-
             mName.textContent =
                 btn.dataset.name || "—";
 
@@ -48,19 +45,18 @@ document.addEventListener("DOMContentLoaded", () => {
             timelineEl.innerHTML = "";
 
             const events = [];
-            if (isOtherRegistration) {
 
+            if (isOtherRegistration) {
                 events.push({
                     type: "other_registered",
                     date:
                         btn.dataset.createdAt ||
                         new Date().toISOString(),
-                    office: registrationOffice
+                    office: registrationOffice,
                 });
-
             } else {
                 if (
-                    !isStaff ||
+                    !isDepartmentUser ||
                     registrationOfficeId === staffOfficeId
                 ) {
                     const firstTicket = tickets[0];
@@ -72,48 +68,45 @@ document.addEventListener("DOMContentLoaded", () => {
                             ticket: firstTicket.ticket_number,
                             queue: firstTicket.queue_number,
                             office: registrationOffice,
-                            officeId: registrationOfficeId
+                            officeId: registrationOfficeId,
                         });
                     }
                 }
 
-                transfers.forEach(transfer => {
-
+                transfers.forEach((transfer) => {
                     const fromOfficeId =
                         Number(transfer.from_office_id);
 
                     const toOfficeId =
                         Number(transfer.to_office_id);
 
-                    const belongsToStaff =
+                    const belongsToDepartment =
                         fromOfficeId === staffOfficeId ||
                         toOfficeId === staffOfficeId;
 
-                    if (isStaff && !belongsToStaff) {
+                    if (
+                        isDepartmentUser &&
+                        !belongsToDepartment
+                    ) {
                         return;
                     }
 
                     events.push({
                         type: "transferred",
                         date: transfer.transferred_at,
-
                         fromOffice:
                             transfer.from_office?.name ?? "—",
-
                         toOffice:
                             transfer.to_office?.name ?? "—",
-
                         transferredBy:
                             transfer.transferred_by?.name ??
                             "Unknown",
-
                         fromOfficeId,
-                        toOfficeId
+                        toOfficeId,
                     });
                 });
 
                 if (tickets.length) {
-
                     const final =
                         tickets[tickets.length - 1];
 
@@ -124,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             : null;
 
                     if (
-                        !isStaff ||
+                        !isDepartmentUser ||
                         finalOfficeId === staffOfficeId
                     ) {
                         events.push({
@@ -132,27 +125,24 @@ document.addEventListener("DOMContentLoaded", () => {
                             date: final.updated_at,
                             ticket: final.ticket_number,
                             queue: final.queue_number,
-
                             office:
                                 final.office?.name ??
                                 registrationOffice,
-
                             cashier:
                                 final.cashier?.name ?? null,
-
-                            officeId: finalOfficeId
+                            officeId: finalOfficeId,
                         });
                     }
                 }
             }
 
-            events.sort((a, b) =>
-                new Date(a.date) -
-                new Date(b.date)
+            events.sort(
+                (a, b) =>
+                    new Date(a.date) -
+                    new Date(b.date)
             );
 
             events.forEach((event, index) => {
-
                 const isLast =
                     index === events.length - 1;
 
@@ -161,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         "en-PH",
                         {
                             dateStyle: "medium",
-                            timeStyle: "short"
+                            timeStyle: "short",
                         }
                     );
 
@@ -169,8 +159,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 let title = "";
                 let content = "";
 
-                if (event.type === "other_registered") {
-
+                if (
+                    event.type ===
+                    "other_registered"
+                ) {
                     dotColor = "#9ca3af";
                     title = "Registration Recorded";
 
@@ -188,8 +180,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                 }
 
-                if (event.type === "registered") {
-
+                if (
+                    event.type ===
+                    "registered"
+                ) {
                     dotColor = "#9ca3af";
                     title = "Registered";
 
@@ -206,8 +200,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     `;
                 }
 
-                if (event.type === "transferred") {
-
+                if (
+                    event.type ===
+                    "transferred"
+                ) {
                     dotColor = "#3b82f6";
                     title = "Transferred";
 
@@ -232,7 +228,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (event.type === "done") {
-
                     dotColor = "#10b981";
                     title = "Completed";
 
@@ -257,7 +252,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (event.type === "skipped") {
-
                     dotColor = "#f59e0b";
                     title = "Skipped";
 
@@ -283,9 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 timelineEl.innerHTML += `
                     <div class="flex gap-6 relative">
-
                         <div class="flex flex-col items-center">
-
                             <div
                                 class="w-4 h-4 rounded-full border-2 border-white shadow"
                                 style="
@@ -296,40 +288,32 @@ document.addEventListener("DOMContentLoaded", () => {
                                 "
                             ></div>
 
-                            ${!isLast ? `
-                                <div
-                                    class="w-0.5 bg-gray-300 flex-1 mt-3"
-                                ></div>
-                            ` : ""}
-
+                            ${
+                                !isLast
+                                    ? `
+                                        <div
+                                            class="w-0.5 bg-gray-300 flex-1 mt-3"
+                                        ></div>
+                                    `
+                                    : ""
+                            }
                         </div>
 
                         <div class="flex-1 pb-6">
-
-                            <div
-                                class="bg-white border rounded-xl shadow-sm p-4"
-                            >
-
-                                <div
-                                    class="font-semibold text-sm text-gray-800"
-                                >
+                            <div class="bg-white border rounded-xl shadow-sm p-4">
+                                <div class="font-semibold text-sm text-gray-800">
                                     ${title}
                                 </div>
 
-                                <div
-                                    class="text-xs text-gray-500 mt-1"
-                                >
+                                <div class="text-xs text-gray-500 mt-1">
                                     ${date}
                                 </div>
 
                                 <div class="mt-3">
                                     ${content}
                                 </div>
-
                             </div>
-
                         </div>
-
                     </div>
                 `;
             });
@@ -344,7 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.classList.remove("flex");
     });
 
-    modal.addEventListener("click", e => {
+    modal.addEventListener("click", (e) => {
         if (e.target === modal) {
             modal.classList.add("hidden");
             modal.classList.remove("flex");

@@ -70,6 +70,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/{id}/edit', [StaffController::class, 'edit'])->name('staff.edit');
             Route::put('/{id}', [StaffController::class, 'update'])->name('staff.update');
             Route::delete('/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
+            Route::post('/{id}/restore', [StaffController::class, 'restore'])->name('staff.restore');
         });
 
         // Office Management

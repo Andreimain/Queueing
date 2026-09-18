@@ -21,9 +21,14 @@ class StaffController extends Controller
                 ->paginate(7);
 
             $offices = Office::where('id', $user->office_id)->get();
-        } else {
-            $staff = User::with(['office', 'courses'])->paginate(8);
+        } elseif ($user->isAdmin()) {
+            $staff = User::with(['office', 'courses'])
+                ->where('id', '!=', $user->id)
+                ->paginate(8);
+
             $offices = Office::all();
+        } else {
+            abort(403);
         }
 
         $courses = Course::orderBy('name')->get();
@@ -53,6 +58,10 @@ class StaffController extends Controller
             if ((int) $request->office_id !== (int) $user->office_id) {
                 abort(403);
             }
+        }
+
+        if (!$user->isAdmin() && !$user->isHead()) {
+            abort(403);
         }
 
         if (in_array($request->role, ['guard', 'admin'])) {
@@ -92,6 +101,10 @@ class StaffController extends Controller
         $user = auth()->user();
         $staff = User::with('courses')->findOrFail($id);
 
+        if ((int) $staff->id === (int) $user->id) {
+            abort(403);
+        }
+
         if ($user->isHead()) {
             if (
                 $staff->role !== 'staff' ||
@@ -101,19 +114,29 @@ class StaffController extends Controller
             }
 
             $offices = Office::where('id', $user->office_id)->get();
-        } else {
+        } elseif ($user->isAdmin()) {
             $offices = Office::all();
+        } else {
+            abort(403);
         }
 
         $courses = Course::orderBy('name')->get();
 
-        return view('staff.edit_staff', compact('staff', 'offices', 'courses'));
+        return view('staff.edit_staff', compact(
+            'staff',
+            'offices',
+            'courses'
+        ));
     }
 
     public function update(Request $request, $id)
     {
         $user = auth()->user();
         $staff = User::findOrFail($id);
+
+        if ((int) $staff->id === (int) $user->id) {
+            abort(403);
+        }
 
         if ($user->isHead()) {
             if (
@@ -140,7 +163,7 @@ class StaffController extends Controller
             $staff->email = $request->email;
             $staff->role = 'staff';
             $staff->office_id = $user->office_id;
-        } else {
+        } elseif ($user->isAdmin()) {
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|unique:users,email,' . $staff->id,
@@ -164,6 +187,8 @@ class StaffController extends Controller
 
                 $staff->office_id = $request->office_id;
             }
+        } else {
+            abort(403);
         }
 
         if ($request->filled('password')) {
@@ -189,22 +214,23 @@ class StaffController extends Controller
 
     public function destroy($id)
     {
-        $user = auth()->user();
-        $staff = User::findOrFail($id);
+        abort(403);
+    }
 
-        if ($user->isHead()) {
-            if (
-                $staff->role !== 'staff' ||
-                (int) $staff->office_id !== (int) $user->office_id
-            ) {
-                abort(403);
-            }
+    public function restore($id)
+    {
+        $user = auth()->user();
+
+        if (!$user->isAdmin()) {
+            abort(403);
         }
 
-        $staff->delete();
+        $staff = User::withTrashed()->findOrFail($id);
+
+        $staff->restore();
 
         return redirect()
             ->route('staff.index')
-            ->with('success', 'User deleted successfully.');
+            ->with('success', 'User restored successfully.');
     }
 }

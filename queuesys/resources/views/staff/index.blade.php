@@ -194,18 +194,6 @@
                                                         class="py-1 px-3 rounded shadow text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600">
                                                         Edit
                                                     </a>
-
-                                                    <form action="{{ route('staff.destroy', $person->id) }}"
-                                                          method="POST"
-                                                          onsubmit="return confirm('Are you sure you want to delete this staff?');">
-                                                        @csrf
-                                                        @method('DELETE')
-
-                                                        <button type="submit"
-                                                            class="py-1 px-3 rounded shadow text-sm font-semibold text-white bg-red-600 hover:bg-red-700">
-                                                            Delete
-                                                        </button>
-                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>

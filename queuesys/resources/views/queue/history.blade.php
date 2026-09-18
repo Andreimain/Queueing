@@ -36,7 +36,7 @@
                             <th class="p-3 text-left">Office</th>
                         @endif
 
-                        @if ($isStaff)
+                        @if ($isStaff || $isHead)
                             <th class="p-3 text-left">Course</th>
                         @endif
 
@@ -91,7 +91,7 @@
                                 $displayStatus = 'other';
                             }
 
-                            if ($isStaff) {
+                            if ($isStaff || $isHead) {
                                 $officeTransfers = $visitor->transfers
                                     ->filter(function ($transfer) use ($staffOfficeId) {
                                         return $transfer->from_office_id == $staffOfficeId ||
@@ -118,7 +118,6 @@
                         @endphp
 
                         <tr class="border-t hover:bg-gray-50">
-
                             <td class="p-3 font-semibold">
                                 {{ $visitor->ticket_number ?? '—' }}
                             </td>
@@ -137,7 +136,7 @@
                                 </td>
                             @endif
 
-                            @if ($isStaff)
+                            @if ($isStaff || $isHead)
                                 <td class="p-3">
                                     {{ $visitor->course->name ?? '—' }}
                                 </td>
@@ -149,7 +148,8 @@
 
                             <td class="p-3">
                                 <span
-                                    class="px-2 py-0.5 rounded-full text-xs font-medium capitalize {{ $statusColors[$displayStatus] ?? 'bg-gray-100 text-gray-800' }}">
+                                    class="px-2 py-0.5 rounded-full text-xs font-medium capitalize
+                                    {{ $statusColors[$displayStatus] ?? 'bg-gray-100 text-gray-800' }}">
                                     {{ $displayStatus }}
                                 </span>
                             </td>
@@ -171,17 +171,14 @@
                                     Info
                                 </button>
                             </td>
-
                         </tr>
 
                     @empty
-
                         <tr>
-                            <td colspan="{{ $isAdmin ? 7 : 6 }}" class="p-6 text-center text-gray-500">
+                            <td colspan="{{ $isAdmin ? 7 : 7 }}" class="p-6 text-center text-gray-500">
                                 No history found.
                             </td>
                         </tr>
-
                     @endforelse
                 </tbody>
             </table>
@@ -231,6 +228,7 @@
 
     <script>
         window.isStaff = @json($isStaff);
+        window.isHead = @json($isHead);
         window.staffOfficeId = @json($staffOfficeId);
     </script>
 
