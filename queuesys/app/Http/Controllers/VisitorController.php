@@ -77,6 +77,7 @@ class VisitorController extends Controller
                 'ticket_number' => null,
 
                 'status' => null,
+                'presence_status' => $request->type === 'visitor' ? 'in' : null,
                 'priority' => false,
                 'cashier_id' => null,
             ]);
@@ -153,6 +154,7 @@ class VisitorController extends Controller
             'ticket_number' => $ticketNumber,
 
             'status' => 'waiting',
+            'presence_status' => $request->type === 'visitor' ? 'in' : null,
             'priority' => (bool) $request->priority,
             'cashier_id' => null,
         ]);

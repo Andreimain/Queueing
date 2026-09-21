@@ -16,6 +16,7 @@ export default defineConfig({
                     'resources/js/staff-management.js',
                     'resources/js/statistics.js',
                     'resources/js/transfer-modal.js',
+                    'resources/js/guard-process.js',
                     'resources/js/guard-monitoring.js'],
             refresh: true,
         }),

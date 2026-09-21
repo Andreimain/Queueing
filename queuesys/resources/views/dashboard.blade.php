@@ -173,7 +173,8 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
                         <a href="{{ route('guard.visitors') }}"
                             class="block bg-emerald-50 rounded-xl p-6 border border-emerald-100 hover:bg-emerald-100 transition">
                             <div class="flex items-center gap-4">
@@ -191,7 +192,30 @@
                                     </h4>
 
                                     <p class="text-sm text-gray-500 mt-1">
-                                        Monitor visitors currently waiting or being served.
+                                        Monitor visitors currently inside the campus.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('guard.visitors.process') }}"
+                            class="block bg-blue-50 rounded-xl p-6 border border-blue-100 hover:bg-blue-100 transition">
+                            <div class="flex items-center gap-4">
+                                <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
+                                        </path>
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-lg font-semibold text-blue-700">
+                                        Visitor IN/OUT
+                                    </h4>
+
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Process visitor entry and exit.
                                     </p>
                                 </div>
                             </div>
@@ -202,7 +226,7 @@
                             <div class="flex items-center gap-4">
                                 <div class="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        <path class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
                                         </path>
                                     </svg>

@@ -84,9 +84,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Guard Routes
     Route::middleware('guard')->prefix('guard')->name('guard.')->group(function () {
         Route::get('/', [GuardController::class, 'index'])->name('visitors');
+        Route::get('/visitors/process', [GuardController::class, 'process'])->name('visitors.process');
         Route::get('/history', [GuardController::class, 'history'])->name('history');
         Route::get('/visitors/data', [GuardController::class, 'data'])->name('visitors.data');
         Route::get('/visitors/{visitor}/photo', [GuardController::class, 'photo'])->name('visitors.photo');
+        Route::post('/visitors/find', [GuardController::class, 'find'])->name('visitors.find');
+        Route::post('/visitors/checkout', [GuardController::class, 'checkout'])->name('visitors.checkout');
     });
 });
 

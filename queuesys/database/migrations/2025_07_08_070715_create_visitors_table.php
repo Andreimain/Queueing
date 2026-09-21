@@ -45,6 +45,7 @@ return new class extends Migration
 
             $table->boolean('priority')->default(false);
             $table->enum('status', ['waiting','serving','done','skipped','transferred'])->nullable();
+            $table->enum('presence_status', ['in','out'])->nullable();
             $table->timestamps();
         });
     }

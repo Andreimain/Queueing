@@ -6,7 +6,7 @@
             </h2>
 
             <p class="text-sm text-gray-500 mt-1">
-                Monitor visitors currently waiting or being served.
+                Monitor visitors currently inside the campus.
             </p>
         </div>
     </x-slot>
@@ -23,7 +23,7 @@
                         </h3>
 
                         <p class="text-sm text-gray-500">
-                            Visitors across all offices
+                            Visitors currently inside the campus
                         </p>
                     </div>
 
@@ -38,7 +38,7 @@
 
                     @forelse($visitors as $visitor)
                         <div
-                            class="visitor-card bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col items-center text-center">
+                            class="visitor-card bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col items-center text-center h-full">
 
                             {{-- Photo Box --}}
                             <div
@@ -54,18 +54,20 @@
                             </div>
 
                             {{-- Ticket Number --}}
-                            <div class="mt-5">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                    Ticket Number
-                                </p>
+                            @if ($visitor->ticket_number)
+                                <div class="mt-5">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                        Ticket Number
+                                    </p>
 
-                                <p class="mt-1 text-2xl font-bold text-gray-900">
-                                    {{ $visitor->ticket_number ?? '—' }}
-                                </p>
-                            </div>
+                                    <p class="mt-1 text-2xl font-bold text-gray-900">
+                                        {{ $visitor->ticket_number }}
+                                    </p>
+                                </div>
+                            @endif
 
                             {{-- Visitor ID --}}
-                            <div class="mt-4">
+                            <div class="{{ $visitor->ticket_number ? 'mt-4' : 'mt-5' }}">
                                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                                     Visitor ID
                                 </p>
@@ -86,17 +88,44 @@
                                 </p>
                             </div>
 
-                            {{-- Status --}}
-                            <div class="mt-5">
-                                @if ($visitor->status === 'serving')
+                            {{-- Queue Status --}}
+                            @if ($visitor->ticket_number)
+                                <div class="mt-5">
+                                    @if ($visitor->status === 'serving')
+                                        <span
+                                            class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                                            ● Serving
+                                        </span>
+                                    @elseif ($visitor->status === 'waiting')
+                                        <span
+                                            class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+                                            ● Waiting
+                                        </span>
+                                    @elseif ($visitor->status === 'skipped')
+                                        <span
+                                            class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
+                                            ● Skipped
+                                        </span>
+                                    @elseif ($visitor->status === 'transferred')
+                                        <span
+                                            class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">
+                                            ● Transferred
+                                        </span>
+                                    @endif
+                                </div>
+                            @endif
+
+                            {{-- Presence Status --}}
+                            <div class="mt-auto pt-5">
+                                @if ($visitor->presence_status === 'in')
                                     <span
                                         class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                                        ● Serving
+                                        ● IN
                                     </span>
                                 @else
                                     <span
-                                        class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                                        ● Waiting
+                                        class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
+                                        ● OUT
                                     </span>
                                 @endif
                             </div>
@@ -106,7 +135,7 @@
                     @empty
 
                         <div id="emptyVisitors" class="col-span-full py-12 text-center text-gray-500">
-                            No visitors are currently waiting or being served.
+                            No visitors are currently inside the campus.
                         </div>
                     @endforelse
 

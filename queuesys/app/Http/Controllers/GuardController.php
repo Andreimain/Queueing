@@ -12,11 +12,16 @@ class GuardController extends Controller
     {
         $visitors = Visitor::with(['office', 'cashier'])
             ->where('type', 'visitor')
-            ->whereIn('status', ['waiting', 'serving'])
+            ->where('presence_status', 'in')
             ->orderBy('created_at')
             ->get();
 
         return view('guard.visitors', compact('visitors'));
+    }
+
+    public function process()
+    {
+        return view('guard.process');
     }
 
     public function history(Request $request)
@@ -44,7 +49,9 @@ class GuardController extends Controller
 
                 $q->where('ticket_number', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('id_number', 'like', "%{$search}%")
                     ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhere('presence_status', 'like', "%{$search}%")
                     ->orWhere('other_office', 'like', "%{$search}%")
 
                     ->orWhereHas('cashier', function ($cashier) use ($search) {
@@ -81,12 +88,13 @@ class GuardController extends Controller
                 'office_id',
                 'other_office',
                 'status',
+                'presence_status',
             ])
             ->with([
                 'office:id,name',
             ])
             ->where('type', 'visitor')
-            ->whereIn('status', ['waiting', 'serving'])
+            ->where('presence_status', 'in')
             ->orderBy('created_at')
             ->get()
             ->map(function ($visitor) {
@@ -101,11 +109,94 @@ class GuardController extends Controller
                         ?? $visitor->other_office
                         ?? 'N/A',
                     'status' => $visitor->status,
+                    'presence_status' => $visitor->presence_status,
                 ];
             })
             ->values();
 
         return response()->json($visitors);
+    }
+
+    public function find(Request $request)
+    {
+        $request->validate([
+            'id_number' => 'required|string|max:50',
+        ]);
+
+        $searchId = ltrim(trim($request->id_number), '0');
+
+        if ($searchId === '') {
+            $searchId = '0';
+        }
+
+        $visitor = Visitor::with('office')
+            ->where('type', 'visitor')
+            ->where('presence_status', 'in')
+            ->where(function ($query) use ($searchId) {
+                $query->where('id_number', $searchId)
+                    ->orWhereRaw("ltrim(id_number, '0') = ?", [$searchId]);
+            })
+            ->first();
+
+        if (!$visitor) {
+            return response()->json([
+                'message' => 'No visitor currently IN the campus was found with that ID number.'
+            ], 404);
+        }
+
+        return response()->json([
+            'id' => $visitor->id,
+            'name' => $visitor->name,
+            'id_number' => $visitor->id_number,
+            'ticket_number' => $visitor->ticket_number,
+            'office' => $visitor->office?->name
+                ?? $visitor->other_office
+                ?? 'N/A',
+            'status' => $visitor->status,
+            'presence_status' => $visitor->presence_status,
+            'photo' => $visitor->photo_path
+                ? route('guard.visitors.photo', $visitor)
+                : null,
+        ]);
+    }
+
+    public function checkout(Request $request)
+    {
+        $request->validate([
+            'id_number' => 'required|string|max:50',
+        ]);
+
+        $visitor = Visitor::where('type', 'visitor')
+            ->where('id_number', $request->id_number)
+            ->where('presence_status', 'in')
+            ->first();
+
+        if (!$visitor) {
+            return response()->json([
+                'message' => 'Visitor not found or visitor is already OUT.'
+            ], 404);
+        }
+
+        $photoPath = $visitor->photo_path;
+
+        $visitor->update([
+            'presence_status' => 'out',
+            'photo_path' => null,
+        ]);
+
+        if ($photoPath && Storage::exists($photoPath)) {
+            Storage::delete($photoPath);
+        }
+
+        return response()->json([
+            'message' => 'Visitor successfully recorded as OUT.',
+            'visitor' => [
+                'id' => $visitor->id,
+                'name' => $visitor->name,
+                'id_number' => $visitor->id_number,
+                'presence_status' => $visitor->presence_status,
+            ],
+        ]);
     }
 
     public function photo(Visitor $visitor)

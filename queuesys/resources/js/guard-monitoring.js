@@ -42,9 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!visitors.length) {
             container.innerHTML = `
                 <div
+                    id="emptyVisitors"
                     class="col-span-full py-12 text-center text-gray-500"
                 >
-                    No visitors are currently waiting or being served.
+                    No visitors are currently inside the campus.
                 </div>
             `;
 
@@ -57,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const card = document.createElement("div");
 
             card.className =
-                "visitor-card bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col items-center text-center";
+                "visitor-card bg-white border border-gray-200 rounded-2xl shadow-sm p-5 flex flex-col items-center text-center h-full";
 
             const photo = visitor.photo
                 ? `
@@ -73,16 +74,71 @@ document.addEventListener("DOMContentLoaded", () => {
                     </span>
                 `;
 
+            const ticket = visitor.ticket_number
+                ? `
+                <!-- Ticket Number -->
+                <div class="mt-5">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Ticket Number
+                    </p>
+
+                    <p class="mt-1 text-2xl font-bold text-gray-900">
+                        ${escapeHtml(visitor.ticket_number)}
+                    </p>
+                </div>
+                `
+                : "";
+
+            const visitorIdMargin = visitor.ticket_number ? "mt-4" : "mt-5";
+
+            let queueStatus = "";
+
+            if (visitor.ticket_number) {
+                if (visitor.status === "serving") {
+                    queueStatus = `
+                        <div class="mt-5">
+                            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                                ● Serving
+                            </span>
+                        </div>
+                    `;
+                } else if (visitor.status === "waiting") {
+                    queueStatus = `
+                        <div class="mt-5">
+                            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+                                ● Waiting
+                            </span>
+                        </div>
+                    `;
+                } else if (visitor.status === "skipped") {
+                    queueStatus = `
+                        <div class="mt-5">
+                            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
+                                ● Skipped
+                            </span>
+                        </div>
+                    `;
+                } else if (visitor.status === "transferred") {
+                    queueStatus = `
+                        <div class="mt-5">
+                            <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">
+                                ● Transferred
+                            </span>
+                        </div>
+                    `;
+                }
+            }
+
             const status =
-                visitor.status === "serving"
+                visitor.presence_status === "in"
                     ? `
                     <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                        ● Serving
+                        ● IN
                     </span>
                 `
                     : `
-                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                        ● Waiting
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
+                        ● OUT
                     </span>
                 `;
 
@@ -95,19 +151,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${photo}
                 </div>
 
-                <!-- Ticket Number -->
-                <div class="mt-5">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        Ticket Number
-                    </p>
-
-                    <p class="mt-1 text-2xl font-bold text-gray-900">
-                        ${escapeHtml(visitor.ticket_number ?? "—")}
-                    </p>
-                </div>
+                ${ticket}
 
                 <!-- Visitor ID -->
-                <div class="mt-4">
+                <div class="${visitorIdMargin}">
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                         Visitor ID
                     </p>
@@ -128,8 +175,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     </p>
                 </div>
 
-                <!-- Status -->
-                <div class="mt-5">
+                <!-- Queue Status -->
+                ${queueStatus}
+
+                <!-- Presence Status -->
+                <div class="mt-auto pt-5">
                     ${status}
                 </div>
             `;

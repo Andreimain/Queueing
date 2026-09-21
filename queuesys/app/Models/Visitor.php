@@ -22,6 +22,7 @@ class Visitor extends Model
         'queue_number',
         'ticket_number',
         'status',
+        'presence_status',
         'priority',
         'cashier_id',
     ];
