@@ -181,6 +181,7 @@ class GuardController extends Controller
 
         $visitor->update([
             'presence_status' => 'out',
+            'out_at' => now(),
             'photo_path' => null,
         ]);
 
@@ -195,6 +196,7 @@ class GuardController extends Controller
                 'name' => $visitor->name,
                 'id_number' => $visitor->id_number,
                 'presence_status' => $visitor->presence_status,
+                'out_at' => $visitor->out_at,
             ],
         ]);
     }

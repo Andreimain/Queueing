@@ -76,7 +76,8 @@
                             <th class="p-3 text-left">Office</th>
                             <th class="p-3 text-left">Window</th>
                             <th class="p-3 text-left">Status</th>
-                            <th class="p-3 text-left">Date</th>
+                            <th class="p-3 text-left">IN Time</th>
+                            <th class="p-3 text-left">OUT Time</th>
                         </tr>
                     </thead>
 
@@ -143,9 +144,22 @@
 
                                 </td>
 
-                                {{-- Date --}}
-                                <td class="p-3 text-gray-600">
-                                    {{ $visitor->updated_at->timezone('Asia/Manila')->format('M d, Y h:i A') }}
+                                {{-- IN Time --}}
+                                <td class="p-3 text-gray-600 whitespace-nowrap">
+                                    @if ($visitor->in_at)
+                                        {{ $visitor->in_at->timezone('Asia/Manila')->format('M d, Y h:i A') }}
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+
+                                {{-- OUT Time --}}
+                                <td class="p-3 text-gray-600 whitespace-nowrap">
+                                    @if ($visitor->out_at)
+                                        {{ $visitor->out_at->timezone('Asia/Manila')->format('M d, Y h:i A') }}
+                                    @else
+                                        —
+                                    @endif
                                 </td>
 
                             </tr>
@@ -153,7 +167,7 @@
                         @empty
 
                             <tr>
-                                <td colspan="6" class="p-6 text-center text-gray-500">
+                                <td colspan="7" class="p-6 text-center text-gray-500">
                                     No history found.
                                 </td>
                             </tr>

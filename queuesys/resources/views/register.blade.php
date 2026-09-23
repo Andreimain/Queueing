@@ -108,9 +108,16 @@
                     Visitor Photo
                 </label>
 
-                <p class="text-xs text-gray-500 mb-3">
-                    A photo is required for visitors.
-                </p>
+                <div class="mb-3 p-3 bg-yellow-50 border border-yellow-300 rounded-lg">
+                    <p class="text-xs text-red-800 leading-relaxed">
+                        <span class="font-bold">
+                            Privacy Notice
+                        </span>
+                        <br>
+                        Your photo is collected for visitor identification and campus security purposes.
+                        It is stored securely and deleted upon exiting the campus.
+                    </p>
+                </div>
 
                 {{-- Camera --}}
                 <div id="cameraContainer" class="hidden">

@@ -23,12 +23,16 @@ class Visitor extends Model
         'ticket_number',
         'status',
         'presence_status',
+        'in_at',
+        'out_at',
         'priority',
         'cashier_id',
     ];
 
     protected $casts = [
         'priority' => 'boolean',
+        'in_at' => 'datetime',
+        'out_at' => 'datetime',
     ];
 
     public function office()
