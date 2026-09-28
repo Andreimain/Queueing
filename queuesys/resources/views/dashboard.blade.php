@@ -176,7 +176,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                         <a href="{{ route('guard.visitors') }}"
-                            class="block bg-emerald-50 rounded-xl p-6 border border-emerald-100 hover:bg-emerald-100 transition">
+                            class="h-full flex items-center bg-emerald-50 rounded-xl p-6 border border-emerald-100 hover:bg-emerald-100 transition">
                             <div class="flex items-center gap-4">
                                 <div class="h-12 w-12 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,11 +199,11 @@
                         </a>
 
                         <a href="{{ route('guard.visitors.process') }}"
-                            class="block bg-blue-50 rounded-xl p-6 border border-blue-100 hover:bg-blue-100 transition">
+                            class="h-full flex items-center bg-blue-50 rounded-xl p-6 border border-blue-100 hover:bg-blue-100 transition">
                             <div class="flex items-center gap-4">
                                 <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
                                         </path>
                                     </svg>
@@ -222,11 +222,11 @@
                         </a>
 
                         <a href="{{ route('guard.history') }}"
-                            class="block bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:bg-gray-50 transition">
+                            class="h-full flex items-center bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:bg-gray-50 transition">
                             <div class="flex items-center gap-4">
                                 <div class="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-600">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
                                         </path>
                                     </svg>

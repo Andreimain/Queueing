@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const idNumberLabel = document.getElementById("idNumberLabel");
     const idNumber = document.getElementById("idNumber");
+    const scanIdButton = document.getElementById("scanIdButton");
+    const scanStatus = document.getElementById("scanStatus");
 
     const courseField = document.getElementById("courseField");
     const courseSelect = document.getElementById("courseSelect");
@@ -37,6 +39,10 @@ document.addEventListener("DOMContentLoaded", function () {
     let cameraStream = null;
     let capturedPhoto = null;
     let previewUrl = null;
+    let scanningId = false;
+
+    const scanCooldowns = new Map();
+    const SCAN_COOLDOWN = 10000;
 
     function updateRegistrationType() {
         if (studentType?.checked) {
@@ -45,6 +51,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             courseField.classList.remove("hidden");
             courseSelect.required = true;
+
+            // Hide RFID scanning for students
+            stopIdScanning();
 
             // Hide visitor photo section
             photoField?.classList.add("hidden");
@@ -61,6 +70,9 @@ document.addEventListener("DOMContentLoaded", function () {
             courseField.classList.add("hidden");
             courseSelect.required = false;
             courseSelect.value = "";
+
+            // Show RFID scanning for visitors
+            scanIdButton?.classList.remove("hidden");
 
             // Show visitor photo section
             photoField?.classList.remove("hidden");
@@ -83,6 +95,119 @@ document.addEventListener("DOMContentLoaded", function () {
                 otherOfficeInput.required = false;
                 otherOfficeInput.value = "";
             }
+        }
+    }
+
+    function startIdScanning() {
+        if (!idNumber || !visitorType?.checked) {
+            return;
+        }
+
+        scanningId = true;
+
+        idNumber.focus();
+
+        if (scanStatus) {
+            scanStatus.textContent = "Waiting for RFID scan...";
+            scanStatus.classList.remove("hidden");
+        }
+
+        if (scanIdButton) {
+            scanIdButton.classList.remove("hidden");
+            scanIdButton.textContent = "Scanning...";
+            scanIdButton.classList.remove(
+                "bg-emerald-600",
+                "hover:bg-emerald-700"
+            );
+            scanIdButton.classList.add(
+                "bg-yellow-500",
+                "hover:bg-yellow-600"
+            );
+        }
+    }
+
+    function stopIdScanning() {
+        scanningId = false;
+
+        if (scanStatus) {
+            scanStatus.classList.add("hidden");
+        }
+
+        if (scanIdButton) {
+            scanIdButton.textContent = "Scan ID";
+            scanIdButton.classList.remove(
+                "bg-yellow-500",
+                "hover:bg-yellow-600"
+            );
+            scanIdButton.classList.add(
+                "bg-emerald-600",
+                "hover:bg-emerald-700"
+            );
+
+            // Hide RFID scanning button for students
+            if (studentType?.checked) {
+                scanIdButton.classList.add("hidden");
+            }
+        }
+    }
+
+    function completeIdScanning() {
+        if (!scanningId || !visitorType?.checked) {
+            return;
+        }
+
+        const scannedId = idNumber.value.trim();
+
+        if (!scannedId) {
+            return;
+        }
+
+        const now = Date.now();
+        const lastScanTime = scanCooldowns.get(scannedId);
+
+        if (lastScanTime && now - lastScanTime < SCAN_COOLDOWN) {
+            scanningId = false;
+
+            if (scanStatus) {
+                scanStatus.textContent =
+                    "This ID was already scanned. Please wait 10 seconds before scanning it again.";
+                scanStatus.classList.remove("hidden");
+            }
+
+            if (scanIdButton) {
+                scanIdButton.textContent = "Scan ID";
+                scanIdButton.classList.remove(
+                    "bg-yellow-500",
+                    "hover:bg-yellow-600"
+                );
+                scanIdButton.classList.add(
+                    "bg-emerald-600",
+                    "hover:bg-emerald-700"
+                );
+            }
+
+            return;
+        }
+
+        scanCooldowns.set(scannedId, now);
+
+        scanningId = false;
+
+        if (scanStatus) {
+            scanStatus.textContent = "RFID scan received.";
+            scanStatus.classList.remove("hidden");
+        }
+
+        if (scanIdButton) {
+            scanIdButton.textContent = "Scan ID";
+            scanIdButton.classList.remove(
+                "bg-yellow-500",
+                "hover:bg-yellow-600"
+            );
+            scanIdButton.classList.add(
+                "bg-emerald-600",
+                "hover:bg-emerald-700"
+            );
         }
     }
 
@@ -223,6 +348,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Office selection
     officeSelect?.addEventListener("change", updateOfficeSelection);
+
+    // RFID / ID scanning
+    scanIdButton?.addEventListener("click", function () {
+        if (!visitorType?.checked) {
+            return;
+        }
+
+        startIdScanning();
+    });
+
+    idNumber?.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && scanningId) {
+            event.preventDefault();
+
+            completeIdScanning();
+
+            return;
+        }
+    });
 
     // Camera buttons
     openCameraButton?.addEventListener("click", openCamera);

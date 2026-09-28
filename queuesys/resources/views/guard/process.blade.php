@@ -22,15 +22,17 @@
                     </h3>
 
                     <p class="text-sm text-gray-500 mt-1">
-                        Enter a visitor ID to find a visitor currently inside the campus.
+                        Enter a visitor ID manually or scan an RFID card to record a visitor as OUT.
                     </p>
                 </div>
 
                 {{-- Visitor Search --}}
                 <div class="border border-gray-200 rounded-xl p-5 bg-gray-50">
+
                     <div class="flex flex-col sm:flex-row gap-3">
 
                         <input id="visitorIdInput" type="text" placeholder="Enter Visitor ID"
+                            autocomplete="off"
                             class="flex-1 rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
 
                         <button id="findVisitorButton" type="button"
@@ -39,6 +41,25 @@
                         </button>
 
                     </div>
+
+                    {{-- RFID Scanner Status --}}
+                    <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                        <span class="text-lg">
+                            📡
+                        </span>
+
+                        <span id="scannerStatus">
+                            RFID Scanner Ready
+                        </span>
+                    </div>
+
+                    {{-- Hidden RFID Scanner Input --}}
+                    <input id="rfidScannerInput"
+                        type="text"
+                        autocomplete="off"
+                        tabindex="-1"
+                        aria-hidden="true"
+                        class="absolute opacity-0 pointer-events-none">
 
                     <div id="visitorResult" class="mt-4"></div>
                 </div>

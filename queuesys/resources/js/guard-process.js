@@ -1,7 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
     const idInput = document.getElementById("visitorIdInput");
+    const rfidScannerInput = document.getElementById("rfidScannerInput");
     const findButton = document.getElementById("findVisitorButton");
     const visitorResult = document.getElementById("visitorResult");
+    const scannerStatus = document.getElementById("scannerStatus");
+
+    /*
+     * Stores the last accepted scan time for each RFID ID.
+     *
+     * Each ID has its own 10-second cooldown.
+     */
+    const scanCooldowns = new Map();
+
+    const SCAN_COOLDOWN = 10000;
 
     function findVisitor() {
         const idNumber = idInput?.value.trim();
@@ -167,13 +178,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function checkoutVisitor(idNumber) {
-        const confirmed = window.confirm(
-            "Are you sure you want to record this visitor as OUT?"
-        );
+    function checkoutVisitor(idNumber, automatic = false) {
+        if (!automatic) {
+            const confirmed = window.confirm(
+                "Are you sure you want to record this visitor as OUT?"
+            );
 
-        if (!confirmed) {
-            return;
+            if (!confirmed) {
+                return;
+            }
         }
 
         const checkoutButton = document.getElementById("checkoutVisitorButton");
@@ -181,6 +194,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (checkoutButton) {
             checkoutButton.disabled = true;
             checkoutButton.textContent = "Recording...";
+        }
+
+        if (automatic && scannerStatus) {
+            scannerStatus.textContent = "Recording visitor as OUT...";
         }
 
         fetch("/guard/visitors/checkout", {
@@ -212,6 +229,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (idInput) {
                     idInput.value = "";
                 }
+
+                if (automatic && scannerStatus) {
+                    scannerStatus.textContent =
+                        "RFID Scanner Ready";
+                }
+
+                focusRfidScanner();
             })
             .catch((error) => {
                 showResult(error.message, "error");
@@ -220,7 +244,72 @@ document.addEventListener("DOMContentLoaded", () => {
                     checkoutButton.disabled = false;
                     checkoutButton.textContent = "Record OUT";
                 }
+
+                if (automatic && scannerStatus) {
+                    scannerStatus.textContent =
+                        "RFID Scanner Ready";
+                }
+
+                focusRfidScanner();
             });
+    }
+
+    function processRfidScan() {
+        const idNumber = rfidScannerInput?.value.trim();
+
+        if (!idNumber) {
+            return;
+        }
+
+        const now = Date.now();
+        const lastScanTime = scanCooldowns.get(idNumber);
+
+        /*
+         * Ignore the same ID if it was already scanned
+         * within the last 10 seconds.
+         */
+        if (
+            lastScanTime &&
+            now - lastScanTime < SCAN_COOLDOWN
+        ) {
+            if (scannerStatus) {
+                scannerStatus.textContent =
+                    "Scan ignored. This ID was already scanned recently.";
+            }
+
+            if (rfidScannerInput) {
+                rfidScannerInput.value = "";
+            }
+
+            focusRfidScanner();
+
+            return;
+        }
+
+        /*
+         * Accept this RFID ID and start its own
+         * 10-second cooldown.
+         */
+        scanCooldowns.set(idNumber, now);
+
+        if (rfidScannerInput) {
+            rfidScannerInput.value = "";
+        }
+
+        if (scannerStatus) {
+            scannerStatus.textContent =
+                "RFID scan received. Processing...";
+        }
+
+        checkoutVisitor(idNumber, true);
+    }
+
+    function focusRfidScanner() {
+        if (!rfidScannerInput) {
+            return;
+        }
+
+        rfidScannerInput.focus();
     }
 
     function showResult(message, type) {
@@ -254,6 +343,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return div.innerHTML;
     }
 
+    /*
+     * Manual visitor search.
+     */
     if (findButton) {
         findButton.addEventListener("click", findVisitor);
     }
@@ -266,4 +358,42 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+    /*
+     * RFID scanner.
+     *
+     * USB HID RFID readers normally send the card ID
+     * followed by Enter.
+     */
+    if (rfidScannerInput) {
+        rfidScannerInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+
+                processRfidScan();
+            }
+        });
+
+        focusRfidScanner();
+    }
+
+    /*
+     * Keep the RFID scanner input focused when the guard
+     * clicks elsewhere on the page.
+     */
+    document.addEventListener("click", (event) => {
+        /*
+         * Do not steal focus while the guard is manually
+         * typing in the Visitor ID field.
+         */
+        if (idInput && event.target === idInput) {
+            return;
+        }
+
+        if (findButton && event.target === findButton) {
+            return;
+        }
+
+        focusRfidScanner();
+    });
 });

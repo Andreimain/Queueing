@@ -95,10 +95,24 @@
                     ID Number
                 </label>
 
-                <input type="text" name="id_number" id="idNumber" value="{{ old('id_number') }}"
-                    class="mt-1 w-full p-2.5 border border-emerald-300 rounded-md
-                           focus:ring-2 focus:ring-emerald-400
-                           focus:border-emerald-400 transition">
+                <div class="flex gap-2 mt-1">
+
+                    <input type="text" name="id_number" id="idNumber" value="{{ old('id_number') }}"
+                        class="flex-1 w-full p-2.5 border border-emerald-300 rounded-md
+                               focus:ring-2 focus:ring-emerald-400
+                               focus:border-emerald-400 transition">
+
+                    <button type="button" id="scanIdButton"
+                        class="hidden shrink-0 px-4 py-2.5 bg-emerald-600 text-white font-semibold
+                               rounded-md hover:bg-emerald-700 transition">
+                        Scan ID
+                    </button>
+
+                </div>
+
+                <p id="scanStatus" class="hidden mt-2 text-xs text-emerald-700">
+                    Waiting for RFID scan...
+                </p>
             </div>
 
             {{-- Visitor Photo --}}
