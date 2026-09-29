@@ -14,6 +14,167 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const SCAN_COOLDOWN = 10000;
 
+    let searchTimeout = null;
+    let searchRequest = null;
+
+    let searchResults = null;
+
+    function createSearchResultsContainer() {
+        if (!idInput || searchResults) {
+            return;
+        }
+
+        searchResults = document.createElement("div");
+
+        searchResults.id = "visitorSearchResults";
+
+        searchResults.className =
+            "absolute left-0 top-full mt-1 z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden hidden";
+
+        const inputContainer = idInput.parentElement;
+
+        if (!inputContainer) {
+            return;
+        }
+
+        inputContainer.classList.add("relative");
+
+        inputContainer.appendChild(searchResults);
+    }
+
+    function searchVisitors() {
+        const idNumber = idInput?.value.trim();
+
+        if (!idNumber) {
+            hideSearchResults();
+            return;
+        }
+
+        if (idNumber.length < 1) {
+            hideSearchResults();
+            return;
+        }
+
+        if (searchRequest) {
+            searchRequest.abort();
+        }
+
+        searchRequest = new AbortController();
+
+        fetch("/guard/visitors/search", {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRF-TOKEN": getCsrfToken(),
+            },
+            body: JSON.stringify({
+                id_number: idNumber,
+            }),
+            signal: searchRequest.signal,
+        })
+            .then(async (response) => {
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message || "Unable to search visitors."
+                    );
+                }
+
+                return data;
+            })
+            .then((visitors) => {
+                showSearchResults(visitors);
+            })
+            .catch((error) => {
+                if (error.name === "AbortError") {
+                    return;
+                }
+
+                hideSearchResults();
+            });
+    }
+
+    function showSearchResults(visitors) {
+        createSearchResultsContainer();
+
+        if (!searchResults) {
+            return;
+        }
+
+        if (!visitors.length) {
+            hideSearchResults();
+            return;
+        }
+
+        searchResults.innerHTML = visitors
+            .map((visitor) => {
+                return `
+                    <button
+                        type="button"
+                        class="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition"
+                        data-visitor-id="${escapeHtml(visitor.id_number)}"
+                    >
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-semibold text-gray-900 truncate">
+                                    ${escapeHtml(visitor.id_number)}
+                                </p>
+
+                                <p class="text-sm text-gray-700 truncate mt-0.5">
+                                    ${escapeHtml(visitor.name)}
+                                </p>
+
+                                <p class="text-xs text-gray-500 truncate mt-0.5">
+                                    ${escapeHtml(visitor.office)}
+                                </p>
+                            </div>
+
+                            ${
+                                visitor.ticket_number
+                                    ? `
+                                        <span class="shrink-0 text-xs text-gray-500">
+                                            ${escapeHtml(visitor.ticket_number)}
+                                        </span>
+                                    `
+                                    : ""
+                            }
+                        </div>
+                    </button>
+                `;
+            })
+            .join("");
+
+        searchResults.classList.remove("hidden");
+
+        searchResults
+            .querySelectorAll("[data-visitor-id]")
+            .forEach((button) => {
+                button.addEventListener("click", () => {
+                    const visitorId = button.dataset.visitorId;
+
+                    if (idInput) {
+                        idInput.value = visitorId;
+                    }
+
+                    hideSearchResults();
+
+                    findVisitor();
+                });
+            });
+    }
+
+    function hideSearchResults() {
+        if (!searchResults) {
+            return;
+        }
+
+        searchResults.classList.add("hidden");
+        searchResults.innerHTML = "";
+    }
+
     function findVisitor() {
         const idNumber = idInput?.value.trim();
 
@@ -21,6 +182,8 @@ document.addEventListener("DOMContentLoaded", () => {
             showResult("Please enter a visitor ID.", "error");
             return;
         }
+
+        hideSearchResults();
 
         findButton.disabled = true;
         findButton.textContent = "Searching...";
@@ -230,9 +393,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     idInput.value = "";
                 }
 
+                hideSearchResults();
+
                 if (automatic && scannerStatus) {
-                    scannerStatus.textContent =
-                        "RFID Scanner Ready";
+                    scannerStatus.textContent = "RFID Scanner Ready";
                 }
 
                 focusRfidScanner();
@@ -246,8 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (automatic && scannerStatus) {
-                    scannerStatus.textContent =
-                        "RFID Scanner Ready";
+                    scannerStatus.textContent = "RFID Scanner Ready";
                 }
 
                 focusRfidScanner();
@@ -268,10 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
          * Ignore the same ID if it was already scanned
          * within the last 10 seconds.
          */
-        if (
-            lastScanTime &&
-            now - lastScanTime < SCAN_COOLDOWN
-        ) {
+        if (lastScanTime && now - lastScanTime < SCAN_COOLDOWN) {
             if (scannerStatus) {
                 scannerStatus.textContent =
                     "Scan ignored. This ID was already scanned recently.";
@@ -297,8 +457,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (scannerStatus) {
-            scannerStatus.textContent =
-                "RFID scan received. Processing...";
+            scannerStatus.textContent = "RFID scan received. Processing...";
         }
 
         checkoutVisitor(idNumber, true);
@@ -344,19 +503,53 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /*
+     * Live visitor ID search.
+     */
+    if (idInput) {
+        createSearchResultsContainer();
+
+        idInput.addEventListener("input", () => {
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(() => {
+                searchVisitors();
+            }, 200);
+        });
+
+        idInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+
+                hideSearchResults();
+
+                findVisitor();
+            }
+
+            if (event.key === "Escape") {
+                hideSearchResults();
+            }
+        });
+    }
+
+    /*
+     * Hide live search results when clicking elsewhere.
+     */
+    document.addEventListener("click", (event) => {
+        if (
+            idInput &&
+            !idInput.contains(event.target) &&
+            searchResults &&
+            !searchResults.contains(event.target)
+        ) {
+            hideSearchResults();
+        }
+    });
+
+    /*
      * Manual visitor search.
      */
     if (findButton) {
         findButton.addEventListener("click", findVisitor);
-    }
-
-    if (idInput) {
-        idInput.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                findVisitor();
-            }
-        });
     }
 
     /*

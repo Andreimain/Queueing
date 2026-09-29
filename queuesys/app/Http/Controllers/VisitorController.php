@@ -38,6 +38,33 @@ class VisitorController extends Controller
             ],
         ]);
 
+        if (
+            $request->type === 'visitor' &&
+            $request->filled('id_number')
+        ) {
+            $searchId = ltrim(trim($request->id_number), '0');
+
+            if ($searchId === '') {
+                $searchId = '0';
+            }
+
+            $activeVisitorExists = Visitor::where('type', 'visitor')
+                ->where('presence_status', 'in')
+                ->where(function ($query) use ($searchId) {
+                    $query->where('id_number', $searchId)
+                        ->orWhereRaw("ltrim(id_number, '0') = ?", [$searchId]);
+                })
+                ->exists();
+
+            if ($activeVisitorExists) {
+                return back()
+                    ->withErrors([
+                        'id_number' => 'This Visitor ID is already registered and currently IN the campus.'
+                    ])
+                    ->withInput();
+            }
+        }
+
         $photoPath = null;
 
         if (

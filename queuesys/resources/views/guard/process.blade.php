@@ -31,9 +31,13 @@
 
                     <div class="flex flex-col sm:flex-row gap-3">
 
-                        <input id="visitorIdInput" type="text" placeholder="Enter Visitor ID"
-                            autocomplete="off"
-                            class="flex-1 rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                        <div class="relative w-full flex-1">
+
+                            <input id="visitorIdInput" type="text" placeholder="Enter Visitor ID"
+                                autocomplete="off"
+                                class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+
+                        </div>
 
                         <button id="findVisitorButton" type="button"
                             class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">

@@ -117,6 +117,54 @@ class GuardController extends Controller
         return response()->json($visitors);
     }
 
+    public function search(Request $request)
+    {
+        $request->validate([
+            'id_number' => 'nullable|string|max:50',
+        ]);
+
+        $searchId = trim($request->id_number);
+
+        if ($searchId === '') {
+            return response()->json([]);
+        }
+
+        $normalizedSearchId = ltrim($searchId, '0');
+
+        if ($normalizedSearchId === '') {
+            $normalizedSearchId = '0';
+        }
+
+        $visitors = Visitor::with('office')
+            ->where('type', 'visitor')
+            ->where('presence_status', 'in')
+            ->where(function ($query) use ($searchId, $normalizedSearchId) {
+                $query->where('id_number', 'like', "{$searchId}%")
+                    ->orWhere('id_number', 'like', "{$normalizedSearchId}%")
+                    ->orWhereRaw(
+                        "ltrim(id_number, '0') LIKE ?",
+                        ["{$normalizedSearchId}%"]
+                    );
+            })
+            ->orderBy('id_number')
+            ->limit(8)
+            ->get()
+            ->map(function ($visitor) {
+                return [
+                    'id' => $visitor->id,
+                    'name' => $visitor->name,
+                    'id_number' => $visitor->id_number,
+                    'ticket_number' => $visitor->ticket_number,
+                    'office' => $visitor->office?->name
+                        ?? $visitor->other_office
+                        ?? 'N/A',
+                ];
+            })
+            ->values();
+
+        return response()->json($visitors);
+    }
+
     public function find(Request $request)
     {
         $request->validate([
