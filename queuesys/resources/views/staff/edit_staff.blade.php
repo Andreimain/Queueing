@@ -63,7 +63,7 @@
             @else
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Role</label>
-                    <select name="role" required class="mt-1 w-full p-2 border border-gray-300 rounded-md">
+                    <select name="role" id="roleSelect" required class="mt-1 w-full p-2 border border-gray-300 rounded-md">
                         <option value="staff" {{ $staff->role === 'staff' ? 'selected' : '' }}>
                             Staff
                         </option>
