@@ -1,14 +1,8 @@
-import Echo from "laravel-echo";
-
 function formatTicketForSpeech(ticket) {
-    return ticket
+    return String(ticket)
         .split("")
         .map((char) => {
-            if (char === "-") {
-                return "dash";
-            }
-
-            return char;
+            return char === "-" ? "dash" : char;
         })
         .join(" ");
 }
@@ -19,9 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // Keep track of the last ticket announced for each cashier
     const lastAnnouncedTickets = {};
-
     const speechQueue = [];
     let isSpeaking = false;
 
@@ -32,10 +24,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         isSpeaking = true;
+
         const text = speechQueue.shift();
         const announcement = new SpeechSynthesisUtterance(text);
+
         announcement.rate = 0.9;
         announcement.pitch = 1;
+
         announcement.onend = () => {
             isSpeaking = false;
             speakNext();
@@ -50,18 +45,13 @@ document.addEventListener("DOMContentLoaded", () => {
         speechSynthesis.speak(announcement);
     }
 
-    function queueAnnouncement(ticket, cashierName, type = 'now-serving') {
-        const spokenTicket =
-            formatTicketForSpeech(ticket);
-        let message;
+    function queueAnnouncement(ticket, cashierName, type = "now-serving") {
+        const spokenTicket = formatTicketForSpeech(ticket);
 
-        if (type === 'call-again') {
-            message =
-                `Calling for ${spokenTicket}. Please proceed to ${cashierName}.`;
-        } else {
-            message =
-                `Now serving ${spokenTicket}. Please proceed to ${cashierName}.`;
-        }
+        const message =
+            type === "call-again"
+                ? `Calling for ${spokenTicket}. Please proceed to ${cashierName}.`
+                : `Now serving ${spokenTicket}. Please proceed to ${cashierName}.`;
 
         speechQueue.push(message);
 
@@ -70,8 +60,63 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    window.Echo.channel(`queues.office.${window.officeId}`)
+    function updateServingDisplay(container, serving) {
+        const servingDiv = container.querySelector(".serving");
 
+        if (!servingDiv) {
+            return;
+        }
+
+        const display = document.createElement("div");
+
+        if (serving) {
+            display.className =
+                "text-4xl sm:text-5xl lg:text-6xl font-bold text-emerald-600 break-words";
+
+            display.textContent = serving.ticket;
+        } else {
+            display.className = "text-2xl sm:text-3xl text-gray-400";
+            display.textContent = "Idle";
+        }
+
+        servingDiv.replaceChildren(display);
+    }
+
+    function updateUpcomingQueues(upcomingList) {
+        const upcoming = document.getElementById("upcoming-queues");
+
+        if (!upcoming) {
+            return;
+        }
+
+        if (!upcomingList.length) {
+            const emptyMessage = document.createElement("li");
+
+            emptyMessage.className =
+                "col-span-full text-gray-500 text-center py-8";
+
+            emptyMessage.textContent = "No upcoming queues";
+
+            upcoming.replaceChildren(emptyMessage);
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        upcomingList.forEach((ticket) => {
+            const item = document.createElement("li");
+
+            item.className =
+                "rounded-xl bg-emerald-50 border border-emerald-100 px-5 py-5 text-2xl sm:text-3xl font-bold text-emerald-800 text-center break-words";
+
+            item.textContent = ticket;
+            fragment.appendChild(item);
+        });
+
+        upcoming.replaceChildren(fragment);
+    }
+
+    window.Echo.channel(`queues.office.${window.officeId}`)
         .listen(".queue.updated", (e) => {
             const payload = e.payload;
 
@@ -85,78 +130,46 @@ document.addEventListener("DOMContentLoaded", () => {
                 .forEach((container) => {
                     const cashierId = container.dataset.cashierId;
                     const serving = payload.serving?.[cashierId] || null;
-                    const servingDiv = container.querySelector(".serving");
 
-                    if (!servingDiv) {
-                        return;
-                    }
+                    updateServingDisplay(container, serving);
 
                     if (serving) {
-                        servingDiv.innerHTML = `
-                            <div class="text-3xl sm:text-4xl font-bold text-emerald-600">
-                                ${serving.ticket}
-                            </div>
-                        `;
-
                         if (
                             lastAnnouncedTickets[cashierId] !== serving.ticket
                         ) {
                             lastAnnouncedTickets[cashierId] = serving.ticket;
+
                             const cashierName =
                                 container
-                                    .querySelector("h2")
+                                    .querySelector("h3")
                                     ?.textContent.trim() || "cashier";
-                            queueAnnouncement(serving.ticket, cashierName);
+
+                            queueAnnouncement(
+                                serving.ticket,
+                                cashierName
+                            );
                         }
                     } else {
-                        servingDiv.innerHTML = `<div class="text-2xl sm:text-3xl text-gray-400">
-                                Idle
-                            </div>`;
+                        lastAnnouncedTickets[cashierId] = null;
                     }
                 });
-
-            const upcoming = document.getElementById("upcoming-queues");
-
-            if (!upcoming) {
-                return;
-            }
 
             const upcomingList = Array.isArray(payload.upcoming)
                 ? payload.upcoming
                 : [];
 
-            if (!upcomingList.length) {
-                upcoming.innerHTML = `<li class="text-gray-500">
-                        No upcoming queues
-                    </li>`;
-
-                return;
-            }
-
-            upcoming.innerHTML = upcomingList
-                .map(
-                    (ticket) =>
-                        `<li class="text-2xl sm:text-3xl text-gray-800">
-                            ${ticket}
-                        </li>`
-                )
-                .join("");
+            updateUpcomingQueues(upcomingList);
         })
-
-        .listen('.queue.announce', (e) => {
-
+        .listen(".queue.announce", (e) => {
             if (!e.ticket) {
-                console.warn(
-                    'No ticket received for announcement.'
-                );
-
+                console.warn("No ticket received for announcement.");
                 return;
             }
 
             queueAnnouncement(
                 e.ticket,
-                e.cashier || 'the cashier',
-                'call-again'
+                e.cashier || "the cashier",
+                "call-again"
             );
         });
 });

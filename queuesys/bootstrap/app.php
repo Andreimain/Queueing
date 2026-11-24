@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\TrackUserActivity;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,10 +13,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-$middleware->trustProxies(at: '*');
+        $middleware->trustProxies(at: '*');
+        $middleware->web(append: [TrackUserActivity::class,]);
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
             'admin.head' => \App\Http\Middleware\IsAdminOrHead::class,
+            'super.admin' => \App\Http\Middleware\IsSuperAdmin::class,
             'guard' => \App\Http\Middleware\IsGuard::class,
             'not.guard' => \App\Http\Middleware\IsNotGuard::class,
         ]);

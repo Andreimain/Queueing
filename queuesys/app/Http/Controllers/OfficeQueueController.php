@@ -21,7 +21,7 @@ class OfficeQueueController extends Controller
         $office = Office::findOrFail($officeId);
         $user = Auth::user();
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->isSuperAdmin()) {
             return $office;
         }
 
@@ -70,19 +70,27 @@ class OfficeQueueController extends Controller
         if (
             $user &&
             $user->isStaff() &&
-            $office->abbreviation === 'RO'
+            strtoupper($office->abbreviation) === 'RO'
         ) {
-            $assignedCourseIds = $user->courses()
-                ->pluck('courses.id');
+            $handle = $user->handle ?: 'Enrollment';
+            $purposeValues = $handle === 'Document Request'
+                ? ['Document Request', 'document_request']
+                : ['Enrollment', 'enrollment'];
+            $waitingQuery->whereIn('purpose', $purposeValues);
 
-            $waitingQuery->where(function ($query) use ($assignedCourseIds) {
-                $query->where('type', 'visitor')
-                    ->orWhere(function ($studentQuery) use ($assignedCourseIds) {
-                        $studentQuery
-                            ->where('type', 'student')
-                            ->whereIn('course_id', $assignedCourseIds);
-                    });
-            });
+            if ($handle === 'Enrollment') {
+                $assignedCourseIds = $user->courses()
+                    ->pluck('courses.id');
+
+                $waitingQuery->where(function ($query) use ($assignedCourseIds) {
+                    $query->where('type', 'visitor')
+                        ->orWhere(function ($studentQuery) use ($assignedCourseIds) {
+                            $studentQuery
+                                ->where('type', 'student')
+                                ->whereIn('course_id', $assignedCourseIds);
+                        });
+                });
+            }
         }
 
         $waiting = $waitingQuery
@@ -138,19 +146,27 @@ class OfficeQueueController extends Controller
             if (
                 $user &&
                 $user->isStaff() &&
-                $office->abbreviation === 'RO'
+                strtoupper($office->abbreviation) === 'RO'
             ) {
-                $assignedCourseIds = $user->courses()
-                    ->pluck('courses.id');
+                $handle = $user->handle ?: 'Enrollment';
+                $purposeValues = $handle === 'Document Request'
+                    ? ['Document Request', 'document_request']
+                    : ['Enrollment', 'enrollment'];
+                $nextQuery->whereIn('purpose', $purposeValues);
 
-                $nextQuery->where(function ($query) use ($assignedCourseIds) {
-                    $query->where('type', 'visitor')
-                        ->orWhere(function ($studentQuery) use ($assignedCourseIds) {
-                            $studentQuery
-                                ->where('type', 'student')
-                                ->whereIn('course_id', $assignedCourseIds);
-                        });
-                });
+                if ($handle === 'Enrollment') {
+                    $assignedCourseIds = $user->courses()
+                        ->pluck('courses.id');
+
+                    $nextQuery->where(function ($query) use ($assignedCourseIds) {
+                        $query->where('type', 'visitor')
+                            ->orWhere(function ($studentQuery) use ($assignedCourseIds) {
+                                $studentQuery
+                                    ->where('type', 'student')
+                                    ->whereIn('course_id', $assignedCourseIds);
+                            });
+                    });
+                }
             }
 
             // Priority first, then FIFO
@@ -491,6 +507,25 @@ class OfficeQueueController extends Controller
                 );
             }
 
+            if (strtoupper($currentOffice->abbreviation) === 'RO') {
+                $currentStaff = auth()->user();
+                $currentHandle = $currentStaff->handle ?: 'Enrollment';
+
+                $allowedPurposes = $currentHandle === 'Document Request'
+                    ? ['Document Request', 'document_request']
+                    : ['Enrollment', 'enrollment'];
+
+                if (
+                    $newStaff->handle !== $currentHandle ||
+                    !in_array($visitor->purpose, $allowedPurposes, true)
+                ) {
+                    return back()->with(
+                        'error',
+                        'Registrar transfers must stay within the same Handle.'
+                    );
+                }
+            }
+
             $alreadyServing = Visitor::where('office_id', $currentOffice->id)
                 ->whereDate('created_at', today())
                 ->where('status', 'serving')
@@ -564,16 +599,16 @@ class OfficeQueueController extends Controller
         $user = Auth::user();
 
         $isStaff = $user &&
-    method_exists($user, 'isStaff') &&
-    $user->isStaff();
+            method_exists($user, 'isStaff') &&
+            $user->isStaff();
 
-$isHead = $user &&
-    method_exists($user, 'isHead') &&
-    $user->isHead();
+        $isHead = $user &&
+            method_exists($user, 'isHead') &&
+            $user->isHead();
 
-$isAdmin = $user &&
-    method_exists($user, 'isAdmin') &&
-    $user->isAdmin();
+        $isAdmin = $user &&
+            method_exists($user, 'isAdmin') &&
+            $user->isAdmin();
 
         $query = Visitor::with([
             'office',

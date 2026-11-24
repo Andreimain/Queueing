@@ -13,26 +13,69 @@ class DashboardController extends Controller
     public function index()
     {
         $today = now()->toDateString();
+        $user = Auth::user();
+
         $totalOffices = Office::count();
         $totalStaff = User::where('role', 'staff')->count();
         $visitorsToday = Visitor::whereDate('created_at', $today)->count();
+
         $activeQueues = Office::whereHas('visitors', function ($q) use ($today) {
             $q->whereDate('created_at', $today)
-              ->where('status', 'waiting');
+                ->where('status', 'waiting');
         })->count();
 
-        $offices = Office::withCount(['visitors as waiting_count' => function($q) use ($today){
-            $q->whereDate('created_at', $today)->where('status', 'waiting');
+        $offices = Office::withCount(['visitors as waiting_count' => function ($q) use ($today) {
+            $q->whereDate('created_at', $today)
+                ->where('status', 'waiting');
         }])->get();
 
-        return view('dashboard', compact('totalOffices', 'totalStaff', 'visitorsToday', 'activeQueues', 'offices'));
+        // Initial staff dashboard values
+        $currentServing = null;
+        $waitingCount = 0;
+        $skippedCount = 0;
+
+        if (
+            !$user->isAdmin() &&
+            !$user->isSuperAdmin() &&
+            !$user->isGuard() &&
+            $user->office_id
+        ) {
+            $currentServing = Visitor::where('office_id', $user->office_id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'serving')
+                ->latest('updated_at')
+                ->first();
+
+            $waitingCount = Visitor::where('office_id', $user->office_id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'waiting')
+                ->count();
+
+            $skippedCount = Visitor::where('office_id', $user->office_id)
+                ->whereDate('created_at', $today)
+                ->where('status', 'skipped')
+                ->count();
+        }
+
+        return view('dashboard', compact(
+            'totalOffices',
+            'totalStaff',
+            'visitorsToday',
+            'activeQueues',
+            'offices',
+            'currentServing',
+            'waitingCount',
+            'skippedCount'
+        ));
     }
+
     public function liveData()
     {
         $today = now()->toDateString();
 
-        $offices = Office::withCount(['visitors as waiting_count' => function($q) use ($today){
-            $q->whereDate('created_at', $today)->where('status', 'waiting');
+        $offices = Office::withCount(['visitors as waiting_count' => function ($q) use ($today) {
+            $q->whereDate('created_at', $today)
+                ->where('status', 'waiting');
         }])->get();
 
         return response()->json([
@@ -40,9 +83,10 @@ class DashboardController extends Controller
             'totalStaff' => User::where('role', 'staff')->count(),
             'visitorsToday' => Visitor::whereDate('created_at', $today)->count(),
             'activeQueues' => Office::whereHas('visitors', function ($q) use ($today) {
-                $q->whereDate('created_at', $today)->where('status', 'waiting');
+                $q->whereDate('created_at', $today)
+                    ->where('status', 'waiting');
             })->count(),
-            'offices' => $offices->map(function($office) {
+            'offices' => $offices->map(function ($office) {
                 return [
                     'name' => $office->name,
                     'waiting_count' => $office->waiting_count,
@@ -50,6 +94,7 @@ class DashboardController extends Controller
             }),
         ]);
     }
+
     public function staffData()
     {
         $office = Auth::user()->office;

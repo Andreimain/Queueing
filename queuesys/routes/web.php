@@ -8,6 +8,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\GuardController;
 use App\Http\Controllers\GoogleAuthController;
+use App\Http\Controllers\SuperAdmin\UserActivityController;
 use App\Models\Office;
 use Illuminate\Support\Facades\Route;
 
@@ -78,6 +79,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/offices/create', [OfficeController::class, 'create'])->name('offices.create');
             Route::post('/offices', [OfficeController::class, 'store'])->name('offices.store');
             Route::put('/offices/{office}', [OfficeController::class, 'update'])->name('offices.update');
+            Route::delete('/offices/{office}', [OfficeController::class, 'destroy'])->name('offices.destroy');
+            Route::post('/offices/{id}/restore', [OfficeController::class, 'restore'])->name('offices.restore');
         });
     });
 
@@ -91,6 +94,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/visitors/search', [GuardController::class, 'search'])->name('visitors.search');
         Route::post('/visitors/find', [GuardController::class, 'find'])->name('visitors.find');
         Route::post('/visitors/checkout', [GuardController::class, 'checkout'])->name('visitors.checkout');
+    });
+
+    Route::middleware(['super.admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+        Route::get('/user-activity', [UserActivityController::class, 'index'])->name('user-activity.index');
     });
 });
 

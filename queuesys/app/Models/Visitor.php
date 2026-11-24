@@ -15,6 +15,7 @@ class Visitor extends Model
         'id_number',
         'photo_path',
         'type',
+        'purpose',
         'course_id',
         'office_id',
         'other_office',

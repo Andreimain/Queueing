@@ -4,25 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Office extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    /**
-     * Allow mass-assignment of these attributes.
-     * Keep this in sync with your offices table columns.
-     */
     protected $fillable = [
         'name',
         'abbreviation',
         'priority_counter',
     ];
 
-    /**
-     * Relationships
-     * An Office has many Visitors.
-     */
     public function visitors()
     {
         return $this->hasMany(Visitor::class);
@@ -32,6 +25,7 @@ class Office extends Model
     {
         return $this->hasMany(User::class)->where('role', 'staff');
     }
+
     public function users()
     {
         return $this->hasMany(User::class);

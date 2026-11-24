@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    public function up(): void
     {
         Schema::create('visitors', function (Blueprint $table) {
             $table->id();
@@ -20,12 +20,8 @@ return new class extends Migration
             $table->integer('queue_number')->nullable();
             $table->string('ticket_number')->nullable();
             $table->enum('type', ['student', 'visitor'])->default('visitor');
-
-            $table->foreignId('course_id')
-                ->nullable()
-                ->constrained('courses')
-                ->nullOnDelete();
-
+            $table->string('purpose')->default('Enrollment');
+            $table->foreignId('course_id')->nullable()->constrained('courses')->nullOnDelete();
             $table->unsignedBigInteger('cashier_id')->nullable();
 
             $table->foreign('office_id')

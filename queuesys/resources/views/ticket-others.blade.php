@@ -2,65 +2,98 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Registration Recorded</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-100 via-white to-emerald-50">
+<body class="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-10">
 
-    <div class="bg-white/80 backdrop-blur-sm border border-emerald-200 p-10 rounded-2xl shadow-lg text-center w-[90%] max-w-md">
+    <main class="w-full max-w-md">
+        <div class="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-xl shadow-emerald-900/5">
 
-        <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-emerald-100 flex items-center justify-center">
+            <!-- Header -->
+            <div class="bg-emerald-700 px-6 py-8 text-center text-white">
+                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-9 w-9"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
 
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-8 w-8 text-emerald-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 13l4 4L19 7"
-                />
-            </svg>
+                <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+                    Registration Recorded
+                </h1>
 
+                <p class="mt-2 text-sm text-emerald-100">
+                    Your visit has been successfully recorded.
+                </p>
+            </div>
+
+            <!-- Content -->
+            <div class="px-6 py-8 text-center sm:px-8">
+
+                <div class="mb-7">
+                    <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-8 w-8 text-emerald-600"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor"
+                             stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+
+                    <h2 class="mt-4 text-lg font-semibold text-gray-800">
+                        Thank You for Visiting!
+                    </h2>
+
+                    <p class="mt-2 text-sm leading-relaxed text-gray-500">
+                        Your visit details have been saved successfully. You may now proceed with your transaction.
+                    </p>
+                </div>
+
+                <!-- Office Details -->
+                <div class="mb-8 rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50 px-5 py-6">
+                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                        Office Visited
+                    </p>
+
+                    <p class="mt-3 break-words text-2xl font-bold text-emerald-700">
+                        {{ $visitor->other_office }}
+                    </p>
+                </div>
+
+                <!-- Action -->
+                <a href="{{ route('visitor.create') }}"
+                   class="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 4v16m8-8H4" />
+                    </svg>
+
+                    Register Another Visitor
+                </a>
+            </div>
         </div>
 
-        <h1 class="text-3xl font-bold mb-4 text-emerald-800">
-            Registration Recorded
-        </h1>
-
-        <p class="text-lg text-gray-700 mb-6">
-            Your visit has been successfully recorded.
+        <p class="mt-5 text-center text-xs text-gray-400">
+            Thank you for visiting our office.
         </p>
-
-        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-8">
-
-            <p class="text-sm text-gray-500 mb-1">
-                Office Visited
-            </p>
-
-            <p class="text-xl font-bold text-emerald-700">
-                {{ $visitor->other_office }}
-            </p>
-
-        </div>
-
-        <a
-            href="{{ route('visitor.create') }}"
-            class="block w-full px-6 py-3 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
-        >
-            Register Another Visitor
-        </a>
-
-    </div>
+    </main>
 
 </body>
 </html>

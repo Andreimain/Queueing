@@ -17,6 +17,7 @@ class User extends Authenticatable
         'password',
         'role',
         'office_id',
+        'handle',
     ];
 
     protected $hidden = [
@@ -28,6 +29,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_activity_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -36,10 +38,12 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Office::class);
     }
+
     public function courses()
     {
         return $this->belongsToMany(Course::class, 'staff_course');
     }
+
     public function visitors()
     {
         return $this->hasMany(Visitor::class, 'cashier_id');
@@ -49,16 +53,24 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+
     public function isHead(): bool
     {
         return $this->role === 'head';
     }
+
     public function isStaff(): bool
     {
         return $this->role === 'staff';
     }
+
     public function isGuard(): bool
     {
         return $this->role === 'guard';
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
     }
 }

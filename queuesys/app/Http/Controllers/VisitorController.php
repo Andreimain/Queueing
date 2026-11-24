@@ -7,6 +7,7 @@ use App\Models\Visitor;
 use App\Models\Office;
 use App\Models\Course;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class VisitorController extends Controller
 {
@@ -28,7 +29,16 @@ class VisitorController extends Controller
             'office_id' => 'required',
             'course_id' => 'nullable|exists:courses,id',
             'priority' => 'nullable|boolean',
-
+            'purpose' => [
+                Rule::requiredIf(function () use ($request) {
+                    return $request->office_id !== 'others'
+                        && Office::whereKey($request->office_id)
+                        ->where('abbreviation', 'RO')
+                        ->exists();
+                }),
+                'nullable',
+                Rule::in(['enrollment', 'document_request']),
+            ],
             'photo' => [
                 'required_if:type,visitor',
                 'nullable',
@@ -71,15 +81,17 @@ class VisitorController extends Controller
             $request->type === 'visitor' &&
             $request->hasFile('photo')
         ) {
-            $dateFolder = now()->format('Y-m-d');
+            $photoPath = null;
 
-            $photoPath = $request->file('photo')->store(
-                "visitor-photos/{$dateFolder}"
-            );
+            if (
+                $request->type === 'visitor' &&
+                $request->hasFile('photo')
+            ) {
+                $photoPath = $request->file('photo')->store('visitor-photos');
+            }
         }
 
         if ($request->office_id === 'others') {
-
             $request->validate([
                 'other_office' => 'required|string|max:255',
             ]);
@@ -90,19 +102,15 @@ class VisitorController extends Controller
                 'id_number' => $request->id_number,
                 'photo_path' => $photoPath,
                 'type' => $request->type,
-
+                'purpose' => 'Enrollment',
                 'course_id' => $request->type === 'student'
                     ? $request->course_id
                     : null,
-
                 'office_id' => null,
                 'other_office' => trim($request->other_office),
-
                 'previous_office_id' => null,
-
                 'queue_number' => null,
                 'ticket_number' => null,
-
                 'status' => null,
                 'presence_status' => $request->type === 'visitor' ? 'in' : null,
                 'in_at' => $request->type === 'visitor' ? now() : null,
@@ -115,15 +123,16 @@ class VisitorController extends Controller
         }
 
         $request->validate([
-            'office_id' => 'exists:offices,id',
+            'office_id' => 'required|exists:offices,id',
         ]);
 
         $office = Office::findOrFail($request->office_id);
-
-        $isRegistrar = $office->abbreviation === 'RO';
+        $isRegistrar = strtoupper($office->abbreviation) === 'RO';
+        $purpose = $isRegistrar ? $request->purpose : 'Enrollment';
 
         if (
             $isRegistrar &&
+            $purpose === 'enrollment' &&
             $request->type === 'student' &&
             !$request->filled('course_id')
         ) {
@@ -143,24 +152,20 @@ class VisitorController extends Controller
         $queueNumber = ($lastQueue ?? 0) + 1;
 
         $prefix = $request->type === 'student' ? 'ST' : 'VS';
-
         $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
         do {
             $suffix = '';
 
             for ($i = 0; $i < 4; $i++) {
-                $suffix .= $characters[
-                    random_int(0, strlen($characters) - 1)
-                ];
+                $suffix .= $characters[random_int(0, strlen($characters) - 1)];
             }
 
             $ticketNumber = "{$prefix}-{$suffix}";
-
         } while (
             Visitor::whereDate('created_at', $today)
-                ->where('ticket_number', $ticketNumber)
-                ->exists()
+            ->where('ticket_number', $ticketNumber)
+            ->exists()
         );
 
         $visitor = Visitor::create([
@@ -169,19 +174,15 @@ class VisitorController extends Controller
             'id_number' => $request->id_number,
             'photo_path' => $photoPath,
             'type' => $request->type,
-
+            'purpose' => $purpose,
             'course_id' => $request->type === 'student'
                 ? $request->course_id
                 : null,
-
             'office_id' => $office->id,
             'other_office' => null,
-
             'previous_office_id' => null,
-
             'queue_number' => $queueNumber,
             'ticket_number' => $ticketNumber,
-
             'status' => 'waiting',
             'presence_status' => $request->type === 'visitor' ? 'in' : null,
             'in_at' => $request->type === 'visitor' ? now() : null,
@@ -219,7 +220,6 @@ class VisitorController extends Controller
 
         return [
             'serving' => $cashiers->mapWithKeys(function ($cashier) use ($servingVisitors) {
-
                 if (!$servingVisitors->has($cashier->id)) {
                     return [
                         $cashier->id => null

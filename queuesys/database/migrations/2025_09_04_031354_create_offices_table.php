@@ -6,10 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('offices', function (Blueprint $table) {
             $table->id();
@@ -17,12 +14,10 @@ return new class extends Migration
             $table->string('abbreviation')->unique();
             $table->unsignedTinyInteger('priority_counter')->default(0);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('offices');

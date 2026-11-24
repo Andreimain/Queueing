@@ -7,24 +7,47 @@ use App\Models\Office;
 use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class StaffController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
+
+        $tab = $request->query('tab') === 'deleted' && $user->isSuperAdmin()
+            ? 'deleted'
+            : 'active';
 
         if ($user->isHead()) {
             $staff = User::with(['office', 'courses'])
                 ->where('office_id', $user->office_id)
                 ->where('role', 'staff')
-                ->paginate(7);
+                ->paginate(7)
+                ->withQueryString();
 
             $offices = Office::where('id', $user->office_id)->get();
+        } elseif ($user->isSuperAdmin()) {
+            if ($tab === 'deleted') {
+                $staff = User::onlyTrashed()
+                    ->with(['office', 'courses'])
+                    ->where('role', '!=', 'super_admin')
+                    ->orderByDesc('deleted_at')
+                    ->paginate(8)
+                    ->withQueryString();
+            } else {
+                $staff = User::with(['office', 'courses'])
+                    ->where('role', '!=', 'super_admin')
+                    ->paginate(8)
+                    ->withQueryString();
+            }
+
+            $offices = Office::all();
         } elseif ($user->isAdmin()) {
             $staff = User::with(['office', 'courses'])
                 ->where('id', '!=', $user->id)
-                ->paginate(8);
+                ->paginate(8)
+                ->withQueryString();
 
             $offices = Office::all();
         } else {
@@ -33,7 +56,12 @@ class StaffController extends Controller
 
         $courses = Course::orderBy('name')->get();
 
-        return view('staff.index', compact('staff', 'offices', 'courses'));
+        return view('staff.index', compact(
+            'staff',
+            'offices',
+            'courses',
+            'tab'
+        ));
     }
 
     public function store(Request $request)
@@ -46,6 +74,16 @@ class StaffController extends Controller
             'password' => 'required|string|min:6',
             'role' => 'required|in:staff,head,guard,admin',
             'office_id' => 'nullable|exists:offices,id',
+            'handle' => [
+                'nullable',
+                Rule::in(['Enrollment', 'Document Request']),
+                Rule::requiredIf(function () use ($request) {
+                    return $request->role === 'staff'
+                        && Office::whereKey($request->office_id)
+                            ->whereRaw('UPPER(abbreviation) = ?', ['RO'])
+                            ->exists();
+                }),
+            ],
             'courses' => 'nullable|array',
             'courses.*' => 'exists:courses,id',
         ]);
@@ -60,7 +98,7 @@ class StaffController extends Controller
             }
         }
 
-        if (!$user->isAdmin() && !$user->isHead()) {
+        if (!$user->isAdmin() && !$user->isSuperAdmin() && !$user->isHead()) {
             abort(403);
         }
 
@@ -74,21 +112,23 @@ class StaffController extends Controller
             $officeId = $request->office_id;
         }
 
+        $office = $officeId ? Office::findOrFail($officeId) : null;
+        $isRegistrarStaff = $request->role === 'staff'
+            && strtoupper($office?->abbreviation ?? '') === 'RO';
+
         $staff = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'office_id' => $officeId,
+            'handle' => $isRegistrarStaff ? $request->handle : null,
         ]);
 
-        $staff->load('office');
-
-        if (
-            $staff->role === 'staff' &&
-            $staff->office?->abbreviation === 'RO'
-        ) {
+        if ($isRegistrarStaff && $request->handle === 'Enrollment') {
             $staff->courses()->sync($request->input('courses', []));
+        } else {
+            $staff->courses()->detach();
         }
 
         return redirect()
@@ -105,6 +145,10 @@ class StaffController extends Controller
             abort(403);
         }
 
+        if ($staff->isSuperAdmin()) {
+            abort(403);
+        }
+
         if ($user->isHead()) {
             if (
                 $staff->role !== 'staff' ||
@@ -114,7 +158,7 @@ class StaffController extends Controller
             }
 
             $offices = Office::where('id', $user->office_id)->get();
-        } elseif ($user->isAdmin()) {
+        } elseif ($user->isAdmin() || $user->isSuperAdmin()) {
             $offices = Office::all();
         } else {
             abort(403);
@@ -138,6 +182,10 @@ class StaffController extends Controller
             abort(403);
         }
 
+        if ($staff->isSuperAdmin()) {
+            abort(403);
+        }
+
         if ($user->isHead()) {
             if (
                 $staff->role !== 'staff' ||
@@ -151,6 +199,15 @@ class StaffController extends Controller
                 'email' => 'required|string|email|unique:users,email,' . $staff->id,
                 'password' => 'nullable|string|min:6',
                 'office_id' => 'required|exists:offices,id',
+                'handle' => [
+                    'nullable',
+                    Rule::in(['Enrollment', 'Document Request']),
+                    Rule::requiredIf(function () use ($request) {
+                        return Office::whereKey($request->office_id)
+                            ->whereRaw('UPPER(abbreviation) = ?', ['RO'])
+                            ->exists();
+                    }),
+                ],
                 'courses' => 'nullable|array',
                 'courses.*' => 'exists:courses,id',
             ]);
@@ -163,13 +220,23 @@ class StaffController extends Controller
             $staff->email = $request->email;
             $staff->role = 'staff';
             $staff->office_id = $user->office_id;
-        } elseif ($user->isAdmin()) {
+        } elseif ($user->isAdmin() || $user->isSuperAdmin()) {
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|unique:users,email,' . $staff->id,
                 'password' => 'nullable|string|min:6',
                 'role' => 'required|in:staff,head,guard,admin',
                 'office_id' => 'nullable|exists:offices,id',
+                'handle' => [
+                    'nullable',
+                    Rule::in(['Enrollment', 'Document Request']),
+                    Rule::requiredIf(function () use ($request) {
+                        return $request->role === 'staff'
+                            && Office::whereKey($request->office_id)
+                                ->whereRaw('UPPER(abbreviation) = ?', ['RO'])
+                                ->exists();
+                    }),
+                ],
                 'courses' => 'nullable|array',
                 'courses.*' => 'exists:courses,id',
             ]);
@@ -195,13 +262,15 @@ class StaffController extends Controller
             $staff->password = Hash::make($request->password);
         }
 
-        $staff->save();
         $staff->load('office');
 
-        if (
-            $staff->role === 'staff' &&
-            $staff->office?->abbreviation === 'RO'
-        ) {
+        $isRegistrarStaff = $staff->role === 'staff'
+            && strtoupper($staff->office?->abbreviation ?? '') === 'RO';
+
+        $staff->handle = $isRegistrarStaff ? $request->handle : null;
+        $staff->save();
+
+        if ($isRegistrarStaff && $request->handle === 'Enrollment') {
             $staff->courses()->sync($request->input('courses', []));
         } else {
             $staff->courses()->detach();
@@ -214,23 +283,46 @@ class StaffController extends Controller
 
     public function destroy($id)
     {
-        abort(403);
+        $user = auth()->user();
+
+        if (!$user->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $staff = User::findOrFail($id);
+
+        if (
+            (int) $staff->id === (int) $user->id ||
+            $staff->isSuperAdmin()
+        ) {
+            abort(403);
+        }
+
+        $staff->delete();
+
+        return redirect()
+            ->route('staff.index', ['tab' => 'active'])
+            ->with('success', 'User deleted successfully.');
     }
 
     public function restore($id)
     {
         $user = auth()->user();
 
-        if (!$user->isAdmin()) {
+        if (!$user->isSuperAdmin()) {
             abort(403);
         }
 
-        $staff = User::withTrashed()->findOrFail($id);
+        $staff = User::onlyTrashed()->findOrFail($id);
+
+        if ($staff->isSuperAdmin()) {
+            abort(403);
+        }
 
         $staff->restore();
 
         return redirect()
-            ->route('staff.index')
+            ->route('staff.index', ['tab' => 'deleted'])
             ->with('success', 'User restored successfully.');
     }
 }

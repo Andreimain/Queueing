@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('password');
             $table->string('role')->default('staff');
             $table->foreignId('office_id')->nullable()->constrained()->onDelete('cascade');
+            $table->string('handle')->nullable();
+            $table->timestamp('last_activity_at')->nullable()->index();
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();

@@ -17,7 +17,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const otherOfficeField = document.getElementById("otherOfficeField");
     const otherOfficeInput = document.getElementById("otherOfficeInput");
 
-    // Photo elements
+    const registrarPurposeField = document.getElementById("registrarPurposeField");
+    const purposeSelect = document.getElementById("purposeSelect");
+
     const photoField = document.getElementById("photoField");
     const cameraContainer = document.getElementById("cameraContainer");
     const cameraPreview = document.getElementById("cameraPreview");
@@ -27,9 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const capturePhotoButton = document.getElementById("capturePhotoButton");
     const stopCameraButton = document.getElementById("stopCameraButton");
 
-    const photoPreviewContainer = document.getElementById(
-        "photoPreviewContainer"
-    );
+    const photoPreviewContainer = document.getElementById("photoPreviewContainer");
     const photoPreview = document.getElementById("photoPreview");
     const retakePhotoButton = document.getElementById("retakePhotoButton");
 
@@ -39,184 +39,15 @@ document.addEventListener("DOMContentLoaded", function () {
     let cameraStream = null;
     let capturedPhoto = null;
     let previewUrl = null;
-    let scanningId = false;
 
-    const scanCooldowns = new Map();
-    const SCAN_COOLDOWN = 10000;
-
-    function updateRegistrationType() {
-        if (studentType?.checked) {
-            idNumberLabel.textContent = "Student ID No.";
-            idNumber.required = true;
-
-            courseField.classList.remove("hidden");
-            courseSelect.required = true;
-
-            // Hide RFID scanning for students
-            stopIdScanning();
-
-            // Hide visitor photo section
-            photoField?.classList.add("hidden");
-
-            // Clear any captured photo
-            clearPhoto();
-
-            // Stop camera if running
-            stopCamera();
-        } else if (visitorType?.checked) {
-            idNumberLabel.textContent = "Visitor ID No.";
-            idNumber.required = false;
-
-            courseField.classList.add("hidden");
-            courseSelect.required = false;
-            courseSelect.value = "";
-
-            // Show RFID scanning for visitors
-            scanIdButton?.classList.remove("hidden");
-
-            // Show visitor photo section
-            photoField?.classList.remove("hidden");
-        }
-    }
-
-    function updateOfficeSelection() {
-        const isOthers = officeSelect?.value === "others";
-
-        if (isOthers) {
-            otherOfficeField?.classList.remove("hidden");
-
-            if (otherOfficeInput) {
-                otherOfficeInput.required = true;
-            }
-        } else {
-            otherOfficeField?.classList.add("hidden");
-
-            if (otherOfficeInput) {
-                otherOfficeInput.required = false;
-                otherOfficeInput.value = "";
-            }
-        }
-    }
-
-    function startIdScanning() {
-        if (!idNumber || !visitorType?.checked) {
-            return;
-        }
-
-        scanningId = true;
-
-        idNumber.focus();
-
-        if (scanStatus) {
-            scanStatus.textContent = "Waiting for RFID scan...";
-            scanStatus.classList.remove("hidden");
-        }
-
-        if (scanIdButton) {
-            scanIdButton.classList.remove("hidden");
-            scanIdButton.textContent = "Scanning...";
-            scanIdButton.classList.remove(
-                "bg-emerald-600",
-                "hover:bg-emerald-700"
-            );
-            scanIdButton.classList.add(
-                "bg-yellow-500",
-                "hover:bg-yellow-600"
-            );
-        }
-    }
-
-    function stopIdScanning() {
-        scanningId = false;
-
-        if (scanStatus) {
-            scanStatus.classList.add("hidden");
-        }
-
-        if (scanIdButton) {
-            scanIdButton.textContent = "Scan ID";
-            scanIdButton.classList.remove(
-                "bg-yellow-500",
-                "hover:bg-yellow-600"
-            );
-            scanIdButton.classList.add(
-                "bg-emerald-600",
-                "hover:bg-emerald-700"
-            );
-
-            // Hide RFID scanning button for students
-            if (studentType?.checked) {
-                scanIdButton.classList.add("hidden");
-            }
-        }
-    }
-
-    function completeIdScanning() {
-        if (!scanningId || !visitorType?.checked) {
-            return;
-        }
-
-        const scannedId = idNumber.value.trim();
-
-        if (!scannedId) {
-            return;
-        }
-
-        const now = Date.now();
-        const lastScanTime = scanCooldowns.get(scannedId);
-
-        if (lastScanTime && now - lastScanTime < SCAN_COOLDOWN) {
-            scanningId = false;
-
-            if (scanStatus) {
-                scanStatus.textContent =
-                    "This ID was already scanned. Please wait 10 seconds before scanning it again.";
-                scanStatus.classList.remove("hidden");
-            }
-
-            if (scanIdButton) {
-                scanIdButton.textContent = "Scan ID";
-                scanIdButton.classList.remove(
-                    "bg-yellow-500",
-                    "hover:bg-yellow-600"
-                );
-                scanIdButton.classList.add(
-                    "bg-emerald-600",
-                    "hover:bg-emerald-700"
-                );
-            }
-
-            return;
-        }
-
-        scanCooldowns.set(scannedId, now);
-
-        scanningId = false;
-
-        if (scanStatus) {
-            scanStatus.textContent = "RFID scan received.";
-            scanStatus.classList.remove("hidden");
-        }
-
-        if (scanIdButton) {
-            scanIdButton.textContent = "Scan ID";
-            scanIdButton.classList.remove(
-                "bg-yellow-500",
-                "hover:bg-yellow-600"
-            );
-            scanIdButton.classList.add(
-                "bg-emerald-600",
-                "hover:bg-emerald-700"
-            );
-        }
+    function hideIdScanning() {
+        scanIdButton?.classList.add("hidden");
+        scanStatus?.classList.add("hidden");
     }
 
     function stopCamera() {
         if (cameraStream) {
-            cameraStream.getTracks().forEach((track) => {
-                track.stop();
-            });
-
+            cameraStream.getTracks().forEach((track) => track.stop());
             cameraStream = null;
         }
 
@@ -247,14 +78,98 @@ document.addEventListener("DOMContentLoaded", function () {
         photoOptions?.classList.remove("hidden");
     }
 
+    function updateRegistrationType() {
+        hideIdScanning();
+
+        if (studentType?.checked) {
+            idNumberLabel.textContent = "Student ID No.";
+            idNumber.required = true;
+
+            courseField?.classList.remove("hidden");
+
+            if (courseSelect) {
+                courseSelect.required = true;
+            }
+
+            photoField?.classList.add("hidden");
+
+            clearPhoto();
+            stopCamera();
+        } else if (visitorType?.checked) {
+            idNumberLabel.textContent = "Visitor ID No.";
+            idNumber.required = false;
+
+            courseField?.classList.add("hidden");
+
+            if (courseSelect) {
+                courseSelect.required = false;
+                courseSelect.value = "";
+            }
+
+            photoField?.classList.remove("hidden");
+        } else {
+            idNumberLabel.textContent = "ID Number";
+            idNumber.required = false;
+
+            courseField?.classList.add("hidden");
+            photoField?.classList.add("hidden");
+
+            if (courseSelect) {
+                courseSelect.required = false;
+            }
+
+            stopCamera();
+        }
+    }
+
+    function isRegistrarSelected() {
+        const selectedOption =
+            officeSelect?.options[officeSelect.selectedIndex];
+
+        return selectedOption?.dataset.abbreviation?.toUpperCase() === "RO";
+    }
+
+    function updateRegistrarPurpose() {
+        const isRegistrar = isRegistrarSelected();
+
+        registrarPurposeField?.classList.toggle("hidden", !isRegistrar);
+
+        if (purposeSelect) {
+            purposeSelect.required = isRegistrar;
+
+            if (!isRegistrar) {
+                purposeSelect.value = "";
+            }
+        }
+    }
+
+    function updateOfficeSelection() {
+        const isOthers = officeSelect?.value === "others";
+
+        otherOfficeField?.classList.toggle("hidden", !isOthers);
+
+        if (otherOfficeInput) {
+            otherOfficeInput.required = isOthers;
+
+            if (!isOthers) {
+                otherOfficeInput.value = "";
+            }
+        }
+
+        updateRegistrarPurpose();
+    }
+
     async function openCamera() {
         try {
             stopCamera();
 
+            if (!navigator.mediaDevices?.getUserMedia) {
+                alert("Camera access is unavailable. Please use a supported browser and a secure connection.");
+                return;
+            }
+
             cameraStream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: "user",
-                },
+                video: { facingMode: "user" },
                 audio: false,
             });
 
@@ -266,14 +181,12 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (error) {
             console.error("Camera error:", error);
 
-            alert(
-                "Unable to access the camera. Please allow camera access and try again."
-            );
+            alert("Unable to access the camera. Please allow camera access and try again.");
         }
     }
 
     function capturePhoto() {
-        if (!cameraStream || !cameraPreview) {
+        if (!cameraStream || !cameraPreview || !photoCanvas || !photoInput) {
             return;
         }
 
@@ -290,98 +203,65 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const context = photoCanvas.getContext("2d");
 
+        if (!context) {
+            alert("Unable to capture the photo. Please try again.");
+            return;
+        }
+
         context.drawImage(cameraPreview, 0, 0, width, height);
 
-        photoCanvas.toBlob(
-            function (blob) {
-                if (!blob) {
-                    alert("Failed to capture the photo. Please try again.");
-                    return;
-                }
+        photoCanvas.toBlob(function (blob) {
+            if (!blob) {
+                alert("Failed to capture the photo. Please try again.");
+                return;
+            }
 
-                capturedPhoto = new File([blob], "visitor-photo.jpg", {
-                    type: "image/jpeg",
-                });
+            capturedPhoto = new File([blob], "visitor-photo.jpg", {
+                type: "image/jpeg",
+            });
 
-                /*
-                 * Put the captured camera photo into the
-                 * hidden file input so Laravel receives it
-                 * as a normal uploaded file.
-                 */
-                const dataTransfer = new DataTransfer();
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(capturedPhoto);
+            photoInput.files = dataTransfer.files;
 
-                dataTransfer.items.add(capturedPhoto);
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
 
-                photoInput.files = dataTransfer.files;
+            previewUrl = URL.createObjectURL(capturedPhoto);
+            photoPreview.src = previewUrl;
 
-                // Show preview
-                if (previewUrl) {
-                    URL.revokeObjectURL(previewUrl);
-                }
+            photoPreviewContainer?.classList.remove("hidden");
+            cameraContainer?.classList.add("hidden");
+            photoOptions?.classList.add("hidden");
 
-                previewUrl = URL.createObjectURL(capturedPhoto);
-
-                photoPreview.src = previewUrl;
-
-                photoPreviewContainer?.classList.remove("hidden");
-                cameraContainer?.classList.add("hidden");
-                photoOptions?.classList.add("hidden");
-
-                // Camera no longer needed
-                stopCamera();
-            },
-            "image/jpeg",
-            0.9
-        );
+            stopCamera();
+        }, "image/jpeg", 0.9);
     }
 
     function retakePhoto() {
         clearPhoto();
-
         openCamera();
     }
 
-    // Registration type
     studentType?.addEventListener("change", updateRegistrationType);
-
     visitorType?.addEventListener("change", updateRegistrationType);
 
-    // Office selection
     officeSelect?.addEventListener("change", updateOfficeSelection);
 
-    // RFID / ID scanning
-    scanIdButton?.addEventListener("click", function () {
-        if (!visitorType?.checked) {
-            return;
-        }
+    // Scan ID stays hidden on the Registration page.
+    hideIdScanning();
 
-        startIdScanning();
-    });
-
-    idNumber?.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" && scanningId) {
-            event.preventDefault();
-
-            completeIdScanning();
-
-            return;
-        }
-    });
-
-    // Camera buttons
     openCameraButton?.addEventListener("click", openCamera);
-
     capturePhotoButton?.addEventListener("click", capturePhoto);
 
     stopCameraButton?.addEventListener("click", function () {
         stopCamera();
-
         photoOptions?.classList.remove("hidden");
     });
 
     retakePhotoButton?.addEventListener("click", retakePhoto);
 
-    // Initial state
     updateRegistrationType();
     updateOfficeSelection();
 
@@ -390,9 +270,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     form.addEventListener("submit", function (event) {
-        /*
-         * Visitors MUST have a camera-captured photo.
-         */
+        if (isRegistrarSelected() && !purposeSelect?.value) {
+            event.preventDefault();
+
+            alert("Please select a Registrar purpose.");
+            purposeSelect?.focus();
+
+            return;
+        }
+
         if (visitorType?.checked && !capturedPhoto) {
             event.preventDefault();
 
@@ -401,12 +287,10 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Stop camera before submitting
         stopCamera();
+        hideIdScanning();
 
-        // Prevent double submission
         button.disabled = true;
-
         button.classList.add("opacity-70", "cursor-not-allowed");
 
         button.innerHTML = `
@@ -424,14 +308,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     stroke="currentColor"
                     stroke-width="4"
                 ></circle>
-
                 <path
                     class="opacity-75"
                     fill="currentColor"
                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                 ></path>
             </svg>
-
             Processing...
         `;
     });
